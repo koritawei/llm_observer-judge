@@ -23,3 +23,10 @@ class InMemoryIdempotencyStore:
     async def mark(self, key: str, *, ttl_seconds: int = 86400) -> None:
         _ = ttl_seconds  # TTL enforced by Redis in production
         self._keys.add(key)
+
+    async def try_mark(self, key: str, *, ttl_seconds: int = 86400) -> bool:
+        _ = ttl_seconds
+        if key in self._keys:
+            return False
+        self._keys.add(key)
+        return True

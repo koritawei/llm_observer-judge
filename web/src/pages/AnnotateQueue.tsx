@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, getAnnotatorId, getTenantId } from "../api/client";
+import { api, getAnnotatorId, getProjectId, getTenantId, scopeQuery } from "../api/client";
 
 type Ann = {
   annotation_id: string;
@@ -17,16 +17,19 @@ export function AnnotateQueue() {
   const [backlog, setBacklog] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const tenant = getTenantId();
+  const project = getProjectId();
 
   const load = async () => {
     setError(null);
     try {
       const list = await api.get<{ items: Ann[] }>(
-        `/annotation/api/v1/annotations?tenant_id=${encodeURIComponent(tenant)}&limit=100`,
+        `/annotation/api/v1/annotations?${scopeQuery({ limit: "100" })}`,
       );
       setItems(list.items);
       setBacklog(
-        await api.get(`/annotation/api/v1/tenants/${encodeURIComponent(tenant)}/annotation-backlog`),
+        await api.get(
+          `/annotation/api/v1/tenants/${encodeURIComponent(tenant)}/annotation-backlog?project_id=${encodeURIComponent(project)}`,
+        ),
       );
     } catch (e) {
       setError(String(e));
@@ -35,7 +38,7 @@ export function AnnotateQueue() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [tenant, project]);
 
   const claim = async (id: string) => {
     await api.post(`/annotation/api/v1/annotations/${id}/claim`, {

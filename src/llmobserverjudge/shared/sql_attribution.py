@@ -18,6 +18,7 @@ class SqlAttributionStore:
             attribution_id=row.attribution_id,
             trace_id=row.trace_id,
             tenant_id=row.tenant_id,
+            project_id=getattr(row, "project_id", None) or "default",
             eval_agent_id=row.eval_agent_id,
             attribution_agent=row.attribution_agent,
             root_cause=row.root_cause,
@@ -34,6 +35,7 @@ class SqlAttributionStore:
     async def save(
         self, result: AttributionResult, *, idempotency_key: str | None = None
     ) -> None:
+        project_id = getattr(result, "project_id", None) or "default"
         async with self._sf() as session:
             if idempotency_key:
                 q = await session.execute(
@@ -49,6 +51,7 @@ class SqlAttributionStore:
                     idempotency_key=idempotency_key,
                     trace_id=result.trace_id,
                     tenant_id=result.tenant_id,
+                    project_id=project_id,
                     eval_agent_id=result.eval_agent_id,
                     attribution_agent=result.attribution_agent,
                     root_cause=result.root_cause,
@@ -75,15 +78,20 @@ class SqlAttributionStore:
             return self._to_model(row) if row else None
 
     async def list_for_trace(
-        self, tenant_id: str, trace_id: str
+        self,
+        tenant_id: str,
+        trace_id: str,
+        *,
+        project_id: str | None = None,
     ) -> list[AttributionResult]:
         async with self._sf() as session:
-            q = await session.execute(
-                select(AttributionResultRow).where(
-                    AttributionResultRow.tenant_id == tenant_id,
-                    AttributionResultRow.trace_id == trace_id,
-                )
+            stmt = select(AttributionResultRow).where(
+                AttributionResultRow.tenant_id == tenant_id,
+                AttributionResultRow.trace_id == trace_id,
             )
+            if project_id is not None:
+                stmt = stmt.where(AttributionResultRow.project_id == project_id)
+            q = await session.execute(stmt)
             return [self._to_model(r) for r in q.scalars().all()]
 
     async def list_recent(self, *, limit: int = 500) -> list[AttributionResult]:

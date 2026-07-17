@@ -18,7 +18,13 @@ class AttributionStore(Protocol):
         self, idempotency_key: str
     ) -> AttributionResult | None: ...
 
-    async def list_for_trace(self, tenant_id: str, trace_id: str) -> list[AttributionResult]: ...
+    async def list_for_trace(
+        self,
+        tenant_id: str,
+        trace_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> list[AttributionResult]: ...
 
 
 @dataclass
@@ -37,12 +43,25 @@ class InMemoryAttributionStore:
             return None
         return self._by_id.get(aid)
 
-    async def list_for_trace(self, tenant_id: str, trace_id: str) -> list[AttributionResult]:
-        return [
+    async def list_for_trace(
+        self,
+        tenant_id: str,
+        trace_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> list[AttributionResult]:
+        rows = [
             r
             for r in self._by_id.values()
             if r.tenant_id == tenant_id and r.trace_id == trace_id
         ]
+        if project_id is not None:
+            rows = [
+                r
+                for r in rows
+                if (getattr(r, "project_id", None) or "default") == project_id
+            ]
+        return rows
 
     async def list_recent(self, *, limit: int = 500) -> list[AttributionResult]:
         rows = list(self._by_id.values())

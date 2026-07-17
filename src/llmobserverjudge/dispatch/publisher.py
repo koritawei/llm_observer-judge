@@ -34,7 +34,7 @@ class DispatchPublisher:
     async def publish_pending(self, limit: int = 100) -> int:
         # Hold snapshot for this batch (CoW: in-flight keeps old rules)
         cfg = self.config_loader.config
-        rows = await self.outbox.fetch_unpublished(limit)
+        rows = await self.outbox.claim_unpublished(limit)
         count = 0
         for row in rows:
             try:
@@ -43,11 +43,25 @@ class DispatchPublisher:
                 job = EvalJob(
                     trace_id=row["trace_id"],
                     tenant_id=row["tenant_id"],
+                    project_id=str(
+                        row.get("project_id")
+                        or (row.get("trace_summary") or {}).get("project_id")
+                        or "default"
+                    ),
                     trace_summary=row["trace_summary"],
                     prompt_version_id=row.get("prompt_version_id"),
                     eval_configs=configs,
                     priority=priority,
-                    idempotency_key=eval_job_key(row["trace_id"], config_dicts),
+                    idempotency_key=eval_job_key(
+                        row["trace_id"],
+                        config_dicts,
+                        tenant_id=row["tenant_id"],
+                        project_id=str(
+                            row.get("project_id")
+                            or (row.get("trace_summary") or {}).get("project_id")
+                            or "default"
+                        ),
+                    ),
                     eval_config_hash=eval_config_hash(config_dicts),
                     created_at=datetime.now(UTC),
                     outbox_id=row["id"],
@@ -57,9 +71,13 @@ class DispatchPublisher:
                 if cfg.publish_priority_shards:
                     shard = eval_jobs_priority_topic(priority.value)
                     await self.mq.publish(self.COMPONENT, shard, payload)
+                # Already claimed (published=True) in fetch_unpublished.
                 await self.outbox.mark_published(row["id"])
                 count += 1
             except Exception:
+                unclaim = getattr(self.outbox, "unclaim", None)
+                if unclaim is not None:
+                    await unclaim(row["id"])
                 await self.outbox.bump_attempt(row["id"])
                 logger.exception("dispatch_publish_failed outbox_id=%s", row.get("id"))
         return count

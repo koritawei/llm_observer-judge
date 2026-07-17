@@ -19,11 +19,16 @@ class OutboxStore(Protocol):
         trace_id: str,
         trace_summary: dict[str, Any],
         prompt_version_id: str | None = None,
+        project_id: str | None = None,
     ) -> str: ...
 
     async def fetch_unpublished(self, limit: int = 100) -> list[dict[str, Any]]: ...
 
+    async def claim_unpublished(self, limit: int = 100) -> list[dict[str, Any]]: ...
+
     async def mark_published(self, row_id: str) -> None: ...
+
+    async def unclaim(self, row_id: str) -> None: ...
 
     async def bump_attempt(self, row_id: str) -> None: ...
 
@@ -41,8 +46,10 @@ class InMemoryOutbox:
         trace_id: str,
         trace_summary: dict[str, Any],
         prompt_version_id: str | None = None,
+        project_id: str | None = None,
     ) -> str:
-        key = f"{tenant_id}:{trace_id}"
+        pid = project_id or str(trace_summary.get("project_id") or "default")
+        key = f"{tenant_id}:{pid}:{trace_id}"
         existing = self._rows.get(key)
         if existing is not None:
             # Merge summary tags/span refs; keep same id
@@ -53,15 +60,20 @@ class InMemoryOutbox:
             tags = list({*old_tags, *new_tags})
             if tags:
                 summary["tags"] = tags
+            summary["project_id"] = pid
             existing["trace_summary"] = summary
+            existing["project_id"] = pid
             return existing["id"]
 
         row_id = str(uuid.uuid4())
+        summary = dict(trace_summary)
+        summary["project_id"] = pid
         self._rows[key] = {
             "id": row_id,
             "tenant_id": tenant_id,
+            "project_id": pid,
             "trace_id": trace_id,
-            "trace_summary": dict(trace_summary),
+            "trace_summary": summary,
             "prompt_version_id": prompt_version_id,
             "published": False,
             "attempt_count": 0,
@@ -71,12 +83,28 @@ class InMemoryOutbox:
     async def fetch_unpublished(self, limit: int = 100) -> list[dict[str, Any]]:
         out = [r for r in self._rows.values() if not r["published"]]
         out.sort(key=lambda r: r["id"])
-        return out[:limit]
+        return [dict(r) for r in out[:limit]]
+
+    async def claim_unpublished(self, limit: int = 100) -> list[dict[str, Any]]:
+        out = [r for r in self._rows.values() if not r["published"]]
+        out.sort(key=lambda r: r["id"])
+        claimed = out[:limit]
+        result: list[dict[str, Any]] = []
+        for row in claimed:
+            row["published"] = True
+            result.append(dict(row))
+        return result
 
     async def mark_published(self, row_id: str) -> None:
         for row in self._rows.values():
             if row["id"] == row_id:
                 row["published"] = True
+                return
+
+    async def unclaim(self, row_id: str) -> None:
+        for row in self._rows.values():
+            if row["id"] == row_id:
+                row["published"] = False
                 return
 
     async def bump_attempt(self, row_id: str) -> None:

@@ -8,10 +8,13 @@ import os
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
+from uuid import uuid4
 
 from llmobserverjudge.contracts.topics import Component, Topic, assert_can_publish
 
 logger = logging.getLogger(__name__)
+
+MQ_MSG_ID = "_mq_id"
 
 
 @runtime_checkable
@@ -32,6 +35,12 @@ class MessageQueue(Protocol):
 
     async def consumer_lag(self, topic: Topic) -> int: ...
 
+    async def ack(self, topic: Topic, message_ids: list[str]) -> None: ...
+
+    async def reclaim_stale(
+        self, topic: Topic, *, max_count: int = 50, min_idle_ms: int | None = None
+    ) -> list[dict[str, Any]]: ...
+
 
 @dataclass
 class InMemoryMQ:
@@ -50,22 +59,33 @@ class InMemoryMQ:
     ) -> None:
         assert_can_publish(component, topic)
         async with self._lock:
-            self._queues[topic.value].append(message)
+            self._queues[topic.value].append(dict(message))
 
     async def publish_batch(
         self, component: Component, topic: Topic, messages: list[dict[str, Any]]
     ) -> None:
         assert_can_publish(component, topic)
         async with self._lock:
-            self._queues[topic.value].extend(messages)
+            self._queues[topic.value].extend(dict(m) for m in messages)
 
     async def drain(self, topic: Topic, max_count: int = 100) -> list[dict[str, Any]]:
         async with self._lock:
             q = self._queues[topic.value]
             out: list[dict[str, Any]] = []
             while q and len(out) < max_count:
-                out.append(q.popleft())
+                item = dict(q.popleft())
+                item[MQ_MSG_ID] = item.get(MQ_MSG_ID) or f"mem-{uuid4().hex[:12]}"
+                out.append(item)
             return out
+
+    async def reclaim_stale(
+        self, topic: Topic, *, max_count: int = 50, min_idle_ms: int | None = None
+    ) -> list[dict[str, Any]]:
+        _ = topic, max_count, min_idle_ms
+        return []
+
+    async def ack(self, topic: Topic, message_ids: list[str]) -> None:
+        _ = topic, message_ids
 
     async def depth(self, topic: Topic) -> int:
         return len(self._queues[topic.value])

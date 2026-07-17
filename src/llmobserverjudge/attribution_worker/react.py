@@ -1,18 +1,13 @@
-"""ReAct attributor with stub policy + confidence early-stop (design §8.1)."""
+"""ReAct attributor with stub policy + LangGraph loop (design §8.1)."""
 
 from __future__ import annotations
 
-import logging
-import time
 from typing import Any
-from uuid import uuid4
 
 from llmobserverjudge.attribution_worker.checkpoint import InMemoryCheckpointStore
 from llmobserverjudge.attribution_worker.context import AttributionContext
 from llmobserverjudge.attribution_worker.tools import BuiltinToolRuntime
 from llmobserverjudge.contracts.models import AttributionJob, AttributionResult
-
-logger = logging.getLogger(__name__)
 
 
 class StubReActPolicy:
@@ -92,137 +87,9 @@ class ReActAttributor:
         self.max_rounds = max_rounds or self.MAX_ROUNDS
 
     async def analyze(self, job: AttributionJob, ctx: AttributionContext) -> AttributionResult:
-        started = time.perf_counter()
-        tools = BuiltinToolRuntime(ctx)
-        observations: list[dict[str, Any]] = []
-        conclusions: list[str] = []
-        rounds = 0
-        confidence = 0.0
-        llm_self = 0.0
-        early_stop = False
-        root_cause = "UNKNOWN"
+        from llmobserverjudge.attribution_worker.langgraph_react import run_react_langgraph
 
-        # Resume hint (optional)
-        saved = await self.checkpoint.load(job.trace_id)
-        if saved:
-            rounds = int(saved.get("round", 0))
-            confidence = float(saved.get("confidence", 0.0))
-
-        try:
-            while rounds < self.max_rounds:
-                rounds += 1
-                thought, action, args, llm_self = await self.policy.next_step(
-                    rounds=rounds, tools=tools, observations=observations
-                )
-                obs = await tools.invoke(action, args)
-                observations.append(
-                    {"round": rounds, "thought": thought, "action": action, "observation": obs}
-                )
-
-                if action == "submit_attribution" and tools.submitted:
-                    root_cause = tools.submitted["root_cause"]
-                    conclusions.append(root_cause)
-                    confidence = self._estimate_confidence(
-                        llm_self=float(tools.submitted.get("confidence") or llm_self),
-                        conclusions=conclusions,
-                        tools_called=tools.tools_called,
-                        observations=observations,
-                    )
-                    early_stop = (
-                        confidence >= self.EARLY_STOP_CONFIDENCE
-                        and rounds >= self.EARLY_STOP_MIN_ROUNDS
-                    )
-                    break
-
-                # Provisional conclusion for consistency factor
-                provisional = _infer_root_cause(
-                    status=str(ctx.trace_summary.get("status") or "OK").upper(),
-                    tags=ctx.trace_summary.get("tags") or [],
-                    score=ctx.score_snapshot.get("score"),
-                    observations=observations,
-                )
-                conclusions.append(provisional)
-                confidence = self._estimate_confidence(
-                    llm_self=llm_self,
-                    conclusions=conclusions,
-                    tools_called=tools.tools_called,
-                    observations=observations,
-                )
-
-                if (
-                    confidence >= self.EARLY_STOP_CONFIDENCE
-                    and rounds >= self.EARLY_STOP_MIN_ROUNDS
-                ):
-                    # Force submit on early-stop
-                    evidence = _collect_evidence(tools, observations)
-                    await tools.invoke(
-                        "submit_attribution",
-                        {
-                            "root_cause": provisional,
-                            "confidence": confidence,
-                            "evidence": evidence,
-                            "summary": "early_stop",
-                        },
-                    )
-                    root_cause = provisional
-                    early_stop = True
-                    break
-
-                if rounds % self.CHECKPOINT_EVERY == 0:
-                    await self.checkpoint.save(
-                        job.trace_id,
-                        {"round": rounds, "confidence": confidence, "tools": tools.tools_called},
-                    )
-
-            if tools.submitted is None:
-                # Exhausted rounds without submit — force submit
-                root_cause = conclusions[-1] if conclusions else "MAX_ROUNDS"
-                await tools.invoke(
-                    "submit_attribution",
-                    {
-                        "root_cause": root_cause,
-                        "confidence": confidence,
-                        "evidence": _collect_evidence(tools, observations),
-                        "summary": "max_rounds",
-                    },
-                )
-
-            duration_ms = int((time.perf_counter() - started) * 1000)
-            return AttributionResult(
-                attribution_id=str(uuid4()),
-                trace_id=job.trace_id,
-                tenant_id=job.tenant_id,
-                eval_agent_id=job.eval_agent_id,
-                attribution_agent=job.attribution_agent,
-                root_cause=root_cause,
-                confidence=round(confidence, 4),
-                evidence=_collect_evidence(tools, observations),
-                tools_called=list(tools.tools_called),
-                rounds=rounds,
-                early_stop=early_stop,
-                status="COMPLETED",
-                duration_ms=duration_ms,
-            )
-        except Exception as e:
-            logger.exception(
-                "attribution_failed trace=%s eval=%s", job.trace_id, job.eval_agent_id
-            )
-            return AttributionResult(
-                attribution_id=str(uuid4()),
-                trace_id=job.trace_id,
-                tenant_id=job.tenant_id,
-                eval_agent_id=job.eval_agent_id,
-                attribution_agent=job.attribution_agent,
-                root_cause="ATTRIBUTION_FAILED",
-                confidence=0.0,
-                evidence=[{"error": str(e), "error_type": type(e).__name__}],
-                tools_called=list(tools.tools_called),
-                rounds=rounds,
-                early_stop=False,
-                status="FAILED",
-                error=str(e),
-                duration_ms=int((time.perf_counter() - started) * 1000),
-            )
+        return await run_react_langgraph(attributor=self, job=job, ctx=ctx)
 
     def _estimate_confidence(
         self,

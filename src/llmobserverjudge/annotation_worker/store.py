@@ -24,6 +24,7 @@ class AnnotationStore(Protocol):
         self,
         *,
         tenant_id: str | None = None,
+        project_id: str | None = None,
         status: AnnotationStatus | None = None,
         limit: int = 100,
     ) -> list[HumanAnnotation]: ...
@@ -46,7 +47,9 @@ class AnnotationStore(Protocol):
 
     async def expire_pending(self, *, now: datetime | None = None) -> int: ...
 
-    async def pending_count(self, tenant_id: str) -> int: ...
+    async def pending_count(
+        self, tenant_id: str, *, project_id: str | None = None
+    ) -> int: ...
 
 
 @dataclass
@@ -86,12 +89,17 @@ class InMemoryAnnotationStore:
         self,
         *,
         tenant_id: str | None = None,
+        project_id: str | None = None,
         status: AnnotationStatus | None = None,
         limit: int = 100,
     ) -> list[HumanAnnotation]:
         rows = list(self._by_id.values())
         if tenant_id is not None:
             rows = [r for r in rows if r.tenant_id == tenant_id]
+        if project_id is not None:
+            rows = [
+                r for r in rows if (getattr(r, "project_id", None) or "default") == project_id
+            ]
         if status is not None:
             rows = [r for r in rows if r.status == status]
         epoch = datetime(1970, 1, 1, tzinfo=UTC)
@@ -190,11 +198,18 @@ class InMemoryAnnotationStore:
                 count += 1
         return count
 
-    async def pending_count(self, tenant_id: str) -> int:
+    async def pending_count(
+        self, tenant_id: str, *, project_id: str | None = None
+    ) -> int:
         return sum(
             1
             for r in self._by_id.values()
-            if r.tenant_id == tenant_id and r.status == AnnotationStatus.PENDING
+            if r.tenant_id == tenant_id
+            and r.status == AnnotationStatus.PENDING
+            and (
+                project_id is None
+                or (getattr(r, "project_id", None) or "default") == project_id
+            )
         )
 
 

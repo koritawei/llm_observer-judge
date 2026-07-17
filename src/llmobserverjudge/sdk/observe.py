@@ -1,53 +1,43 @@
-"""@observe decorator — sync/async (design §3.1.2)."""
+"""@observe decorator — OpenTelemetry spans + Gateway buffer export."""
 
 from __future__ import annotations
 
 import functools
 import inspect
-import time
+import json
 from typing import Any, Callable, TypeVar
+
+from opentelemetry.trace import Status, StatusCode
 
 from llmobserverjudge.sdk.config import get_config
 from llmobserverjudge.sdk.context import (
     SpanContext,
-    generate_span_id,
-    generate_trace_id,
-    get_current_context,
     reset_current_context,
     set_current_context,
-    should_sample,
 )
-from llmobserverjudge.sdk.runtime import push_span
-from llmobserverjudge.sdk.span_record import SpanRecord
+from llmobserverjudge.sdk.otel import get_tracer, record_exception
 
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-def _capture_span(span_name: str) -> tuple[SpanRecord, Any]:
-    cfg = get_config()
-    parent = get_current_context()
-    if parent:
-        trace_id = parent.trace_id
-        parent_span_id = parent.span_id
-        sampled = parent.sampled
-    else:
-        trace_id = generate_trace_id()
-        parent_span_id = None
-        sampled = should_sample(trace_id, cfg.sample_rate)
+def _safe_attr(value: Any) -> str:
+    try:
+        text = json.dumps(value, default=str, ensure_ascii=False)
+    except Exception:
+        text = repr(value)
+    return text[:4000]
 
-    span_id = generate_span_id()
-    record = SpanRecord(
-        name=span_name,
-        trace_id=trace_id,
-        span_id=span_id,
-        parent_span_id=parent_span_id,
-        sampled=sampled,
-        kind="CHAIN",
+
+def _sync_local_ctx(span: Any):
+    """Keep legacy SpanContext ContextVar in sync for inject/extract helpers."""
+    ctx = span.get_span_context()
+    return set_current_context(
+        SpanContext(
+            trace_id=format(ctx.trace_id, "032x"),
+            span_id=format(ctx.span_id, "016x"),
+            sampled=bool(ctx.trace_flags.sampled),
+        )
     )
-    token = set_current_context(
-        SpanContext(trace_id=trace_id, span_id=span_id, sampled=sampled)
-    )
-    return record, token
 
 
 def observe(name: str | None = None) -> Callable[[F], F]:
@@ -60,22 +50,21 @@ def observe(name: str | None = None) -> Callable[[F], F]:
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
                 if not get_config().enabled:
                     return await func(*args, **kwargs)
-                record, token = _capture_span(span_name)
-                record.input = (args, kwargs)
-                start = time.perf_counter_ns()
-                try:
-                    result = await func(*args, **kwargs)
-                    record.output = result
-                    record.status = "OK"
-                    return result
-                except Exception as exc:
-                    record.status = "ERROR"
-                    record.error = f"{type(exc).__name__}: {exc}"
-                    raise
-                finally:
-                    record.duration_ms = int((time.perf_counter_ns() - start) / 1_000_000)
-                    push_span(record)
-                    reset_current_context(token)
+                tracer = get_tracer()
+                with tracer.start_as_current_span(span_name) as span:
+                    token = _sync_local_ctx(span)
+                    span.set_attribute("llmj.kind", "CHAIN")
+                    span.set_attribute("llmj.input", _safe_attr((args, kwargs)))
+                    try:
+                        result = await func(*args, **kwargs)
+                        span.set_attribute("llmj.output", _safe_attr(result))
+                        span.set_status(Status(StatusCode.OK))
+                        return result
+                    except Exception as exc:
+                        record_exception(span, exc)
+                        raise
+                    finally:
+                        reset_current_context(token)
 
             return async_wrapper  # type: ignore[return-value]
 
@@ -83,22 +72,21 @@ def observe(name: str | None = None) -> Callable[[F], F]:
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             if not get_config().enabled:
                 return func(*args, **kwargs)
-            record, token = _capture_span(span_name)
-            record.input = (args, kwargs)
-            start = time.perf_counter_ns()
-            try:
-                result = func(*args, **kwargs)
-                record.output = result
-                record.status = "OK"
-                return result
-            except Exception as exc:
-                record.status = "ERROR"
-                record.error = f"{type(exc).__name__}: {exc}"
-                raise
-            finally:
-                record.duration_ms = int((time.perf_counter_ns() - start) / 1_000_000)
-                push_span(record)
-                reset_current_context(token)
+            tracer = get_tracer()
+            with tracer.start_as_current_span(span_name) as span:
+                token = _sync_local_ctx(span)
+                span.set_attribute("llmj.kind", "CHAIN")
+                span.set_attribute("llmj.input", _safe_attr((args, kwargs)))
+                try:
+                    result = func(*args, **kwargs)
+                    span.set_attribute("llmj.output", _safe_attr(result))
+                    span.set_status(Status(StatusCode.OK))
+                    return result
+                except Exception as exc:
+                    record_exception(span, exc)
+                    raise
+                finally:
+                    reset_current_context(token)
 
         return sync_wrapper  # type: ignore[return-value]
 

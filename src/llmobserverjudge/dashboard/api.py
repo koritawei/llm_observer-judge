@@ -24,12 +24,19 @@ def create_dashboard_app(ctx: DashboardContext) -> FastAPI:
     @app.get("/api/v1/traces")
     async def list_traces(
         tenant_id: str | None = None,
+        project_id: str | None = None,
         limit: int = Query(default=50, ge=1, le=500),
     ) -> dict[str, Any]:
-        items = await ctx.span_store.list_traces(tenant_id=tenant_id, limit=limit)
+        items = await ctx.span_store.list_traces(
+            tenant_id=tenant_id, project_id=project_id, limit=limit
+        )
         # enrich with eval summary (Langfuse-style score chips)
         for it in items:
-            ev = await ctx.eval_results.get(it["trace_id"])
+            ev = await ctx.eval_results.get(
+                it["trace_id"],
+                tenant_id=it.get("tenant_id") or tenant_id,
+                project_id=it.get("project_id") or project_id,
+            )
             if ev:
                 it["final_score"] = ev.final_score
                 it["bad_case_detected"] = ev.bad_case_detected
@@ -52,26 +59,43 @@ def create_dashboard_app(ctx: DashboardContext) -> FastAPI:
 
     @app.get("/api/v1/traces/{trace_id}/summary")
     async def trace_summary(
-        trace_id: str, tenant_id: str | None = None
+        trace_id: str,
+        tenant_id: str | None = None,
+        project_id: str | None = None,
     ) -> dict[str, Any]:
-        spans = await ctx.span_store.list_spans_by_trace(trace_id, tenant_id=tenant_id)
-        if not spans and not await ctx.eval_results.get(trace_id):
+        spans = await ctx.span_store.list_spans_by_trace(
+            trace_id, tenant_id=tenant_id, project_id=project_id
+        )
+        if not spans and not await ctx.eval_results.get(
+            trace_id, tenant_id=tenant_id, project_id=project_id
+        ):
             raise HTTPException(404, "trace not found")
         ten = tenant_id or (spans[0]["tenant_id"] if spans else None)
-        ev = await ctx.eval_results.get(trace_id)
+        pid = project_id or (
+            str(spans[0].get("project_id") or "default") if spans else None
+        )
+        ev = await ctx.eval_results.get(trace_id, tenant_id=ten, project_id=pid)
         attributions: list[Any] = []
         annotations: list[Any] = []
         if ctx.attributions is not None and ten:
             attributions = [
                 a.model_dump(mode="json") if hasattr(a, "model_dump") else a
-                for a in await ctx.attributions.list_for_trace(ten, trace_id)
+                for a in await ctx.attributions.list_for_trace(
+                    ten, trace_id, project_id=pid
+                )
             ]
         if ctx.annotations is not None:
-            all_ann = await ctx.annotations.list(tenant_id=ten, limit=200)
+            all_ann = await ctx.annotations.list(
+                tenant_id=ten, project_id=pid, limit=200
+            )
             annotations = [
                 a.model_dump(mode="json")
                 for a in all_ann
                 if a.trace_id == trace_id
+                and (
+                    pid is None
+                    or getattr(a, "project_id", "default") == pid
+                )
             ]
         nodes = await analytics.build_node_timeline(ctx, trace_id)
         # Always rebuild from current eval + side results so Attribution/Annotation
@@ -113,6 +137,7 @@ def create_dashboard_app(ctx: DashboardContext) -> FastAPI:
         return {
             "trace_id": trace_id,
             "tenant_id": ten,
+            "project_id": pid,
             "spans": spans,
             "eval": ev.to_dict() if ev else None,
             "attributions": attributions,
@@ -131,40 +156,68 @@ def create_dashboard_app(ctx: DashboardContext) -> FastAPI:
         return row
 
     @app.get("/api/v1/stats/overview")
-    async def overview(tenant_id: str | None = None) -> dict[str, Any]:
-        return await analytics.stats_overview(ctx, tenant_id=tenant_id)
+    async def overview(
+        tenant_id: str | None = None, project_id: str | None = None
+    ) -> dict[str, Any]:
+        return await analytics.stats_overview(
+            ctx, tenant_id=tenant_id, project_id=project_id
+        )
 
     @app.get("/api/v1/stats/platform")
     async def platform() -> dict[str, Any]:
         return await analytics.stats_platform(ctx)
 
     @app.get("/api/v1/stats/score_histogram")
-    async def score_histogram(tenant_id: str | None = None) -> dict[str, Any]:
-        return await analytics.stats_score_histogram(ctx, tenant_id=tenant_id)
+    async def score_histogram(
+        tenant_id: str | None = None, project_id: str | None = None
+    ) -> dict[str, Any]:
+        return await analytics.stats_score_histogram(
+            ctx, tenant_id=tenant_id, project_id=project_id
+        )
 
     @app.get("/api/v1/stats/per_eval")
-    async def per_eval(tenant_id: str | None = None) -> dict[str, Any]:
-        return await analytics.stats_per_eval(ctx, tenant_id=tenant_id)
+    async def per_eval(
+        tenant_id: str | None = None, project_id: str | None = None
+    ) -> dict[str, Any]:
+        return await analytics.stats_per_eval(
+            ctx, tenant_id=tenant_id, project_id=project_id
+        )
 
     @app.get("/api/v1/stats/sampling")
     async def sampling() -> dict[str, Any]:
         return await analytics.stats_sampling(ctx)
 
     @app.get("/api/v1/stats/attribution")
-    async def attribution(tenant_id: str | None = None) -> dict[str, Any]:
-        return await analytics.stats_attribution(ctx, tenant_id=tenant_id)
+    async def attribution(
+        tenant_id: str | None = None, project_id: str | None = None
+    ) -> dict[str, Any]:
+        return await analytics.stats_attribution(
+            ctx, tenant_id=tenant_id, project_id=project_id
+        )
 
     @app.get("/api/v1/stats/annotation_accuracy")
-    async def annotation_accuracy(tenant_id: str | None = None) -> dict[str, Any]:
-        return await analytics.stats_annotation_accuracy(ctx, tenant_id=tenant_id)
+    async def annotation_accuracy(
+        tenant_id: str | None = None, project_id: str | None = None
+    ) -> dict[str, Any]:
+        return await analytics.stats_annotation_accuracy(
+            ctx, tenant_id=tenant_id, project_id=project_id
+        )
 
     @app.get("/api/v1/stats/benchmark")
-    async def benchmark(tenant_id: str | None = None) -> dict[str, Any]:
-        return await analytics.stats_benchmark(ctx, tenant_id=tenant_id)
+    async def benchmark(
+        tenant_id: str | None = None, project_id: str | None = None
+    ) -> dict[str, Any]:
+        return await analytics.stats_benchmark(
+            ctx, tenant_id=tenant_id, project_id=project_id
+        )
 
     @app.get("/api/v1/stats/prompts")
-    async def prompts(tenant_id: str | None = None) -> dict[str, Any]:
-        return await analytics.stats_prompts(ctx, tenant_id=tenant_id)
+    async def prompts(
+        tenant_id: str | None = None, project_id: str | None = None
+    ) -> dict[str, Any]:
+        return await analytics.stats_prompts(
+            ctx, tenant_id=tenant_id, project_id=project_id
+        )
 
     @app.get("/api/v1/stats/ab_contrast")
     async def ab_contrast(
@@ -172,6 +225,7 @@ def create_dashboard_app(ctx: DashboardContext) -> FastAPI:
         control_version_id: str | None = None,
         treatment_version_id: str | None = None,
         tenant_id: str | None = None,
+        project_id: str | None = None,
     ) -> dict[str, Any]:
         return await analytics.stats_ab_contrast(
             ctx,
@@ -179,6 +233,7 @@ def create_dashboard_app(ctx: DashboardContext) -> FastAPI:
             control_version_id=control_version_id,
             treatment_version_id=treatment_version_id,
             tenant_id=tenant_id,
+            project_id=project_id,
         )
 
     @app.websocket("/ws/traces/{trace_id}")

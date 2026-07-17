@@ -41,10 +41,13 @@ def create_annotation_app(store: AnnotationStore | None = None) -> FastAPI:
     @app.get("/api/v1/annotations")
     async def list_annotations(
         tenant_id: str | None = None,
+        project_id: str | None = None,
         status: AnnotationStatus | None = None,
         limit: int = Query(default=100, ge=1, le=500),
     ) -> dict[str, Any]:
-        rows = await store.list(tenant_id=tenant_id, status=status, limit=limit)
+        rows = await store.list(
+            tenant_id=tenant_id, project_id=project_id, status=status, limit=limit
+        )
         return {"items": [r.model_dump(mode="json") for r in rows], "count": len(rows)}
 
     @app.get("/api/v1/annotations/{annotation_id}")
@@ -88,10 +91,13 @@ def create_annotation_app(store: AnnotationStore | None = None) -> FastAPI:
         return {"expired": n}
 
     @app.get("/api/v1/tenants/{tenant_id}/annotation-backlog")
-    async def backlog(tenant_id: str) -> dict[str, Any]:
-        pending = await store.pending_count(tenant_id)
+    async def backlog(
+        tenant_id: str, project_id: str | None = None
+    ) -> dict[str, Any]:
+        pending = await store.pending_count(tenant_id, project_id=project_id)
         return {
             "tenant_id": tenant_id,
+            "project_id": project_id,
             "pending": pending,
             "alert": backlog_alert(pending, BACKLOG_ALERT_THRESHOLD),
             "threshold": BACKLOG_ALERT_THRESHOLD,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, getAnnotatorId } from "../api/client";
+import { api, getAnnotatorId, scopeQuery } from "../api/client";
 import { asText, formatMs, formatScore, formatTs, shortId } from "../lib/format";
 
 type Ann = {
@@ -91,11 +91,13 @@ export function AnnotateDetail() {
     if (ann.fix_feasible != null) setFixOk(ann.fix_feasible);
 
     try {
-      const q = ann.tenant_id
-        ? `?tenant_id=${encodeURIComponent(ann.tenant_id)}`
-        : "";
+      const extra: Record<string, string> = {};
+      if (ann.tenant_id) extra.tenant_id = ann.tenant_id;
+      if ((ann as { project_id?: string }).project_id) {
+        extra.project_id = (ann as { project_id?: string }).project_id!;
+      }
       const summary = await api.get<TraceSummary>(
-        `/dashboard/api/v1/traces/${ann.trace_id}/summary${q}`,
+        `/dashboard/api/v1/traces/${ann.trace_id}/summary?${scopeQuery(extra)}`,
       );
       setTrace(summary);
     } catch (e) {

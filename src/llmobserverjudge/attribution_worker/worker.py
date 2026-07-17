@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Any
 
 from llmobserverjudge.attribution_worker.checkpoint import InMemoryCheckpointStore
 from llmobserverjudge.attribution_worker.context import (
@@ -21,7 +22,7 @@ from llmobserverjudge.attribution_worker.store import (
 )
 from llmobserverjudge.contracts.models import AttributionJob, AttributionResult
 from llmobserverjudge.contracts.topics import Topic
-from llmobserverjudge.shared.mq import MessageQueue
+from llmobserverjudge.shared.mq import MQ_MSG_ID, MessageQueue
 
 logger = logging.getLogger(__name__)
 
@@ -36,39 +37,59 @@ class AttributionWorker:
         store: AttributionStore | None = None,
         context_store: InMemoryAttributionContextStore | None = None,
         attributor: ReActAttributor | None = None,
+        checkpoint: Any | None = None,
         max_concurrent: int = 4,
         use_env_react_policy: bool = False,
     ) -> None:
         self.mq = mq
         self.store = store or InMemoryAttributionStore()
         self.context_store = context_store or InMemoryAttributionContextStore()
+        ckpt = checkpoint or InMemoryCheckpointStore()
         if attributor is not None:
             self.attributor = attributor
         elif use_env_react_policy:
             self.attributor = ReActAttributor(
                 policy=react_policy_from_env(),
-                checkpoint=InMemoryCheckpointStore(),
+                checkpoint=ckpt,
             )
         else:
-            self.attributor = ReActAttributor(checkpoint=InMemoryCheckpointStore())
+            self.attributor = ReActAttributor(checkpoint=ckpt)
         self._sem = asyncio.Semaphore(max_concurrent)
         self._seen: set[str] = set()
 
-    async def process_once(self, max_batch: int = 10) -> list[AttributionResult]:
+    async def _pull(self, max_batch: int) -> list[dict]:
         messages = await self.mq.drain(Topic.ATTRIBUTION_JOBS, max_batch)
+        reclaim = getattr(self.mq, "reclaim_stale", None)
+        if reclaim is not None and len(messages) < max_batch:
+            stale = await reclaim(
+                Topic.ATTRIBUTION_JOBS, max_count=max_batch - len(messages)
+            )
+            messages.extend(stale)
+        return messages
+
+    async def process_once(self, max_batch: int = 10) -> list[AttributionResult]:
+        messages = await self._pull(max_batch)
         results: list[AttributionResult] = []
+        ack_ids: list[str] = []
 
-        async def one(raw: dict) -> AttributionResult | None:
+        async def one(raw: dict) -> tuple[str | None, AttributionResult | None]:
+            msg_id = raw.pop(MQ_MSG_ID, None)
             async with self._sem:
-                return await self._process_job(raw)
+                try:
+                    result = await self._process_job(raw)
+                    return (str(msg_id) if msg_id else None, result)
+                except Exception:
+                    logger.exception("attribution_batch_item_failed")
+                    return (None, None)
 
-        done = await asyncio.gather(*[one(m) for m in messages], return_exceptions=True)
-        for item in done:
-            if isinstance(item, Exception):
-                logger.exception("attribution_batch_item_failed: %s", item)
-                continue
+        done = await asyncio.gather(*[one(m) for m in messages])
+        for msg_id, item in done:
+            if msg_id:
+                ack_ids.append(msg_id)
             if item is not None:
                 results.append(item)
+        if ack_ids:
+            await self.mq.ack(Topic.ATTRIBUTION_JOBS, ack_ids)
         return results
 
     async def _process_job(self, raw: dict) -> AttributionResult | None:

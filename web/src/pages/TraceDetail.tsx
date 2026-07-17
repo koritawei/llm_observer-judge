@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, wsUrl } from "../api/client";
+import { api, scopeQuery, wsUrl } from "../api/client";
 import { asText, formatMs, formatScore, formatTs, shortId } from "../lib/format";
 import {
   annotationStatusLabel,
@@ -102,7 +102,9 @@ export function TraceDetail() {
 
   const reloadSummary = async () => {
     if (!traceId) return null;
-    const s = await api.get<Summary>(`/dashboard/api/v1/traces/${traceId}/summary`);
+    const s = await api.get<Summary>(
+      `/dashboard/api/v1/traces/${traceId}/summary?${scopeQuery()}`,
+    );
     setSummary(s);
     return s;
   };

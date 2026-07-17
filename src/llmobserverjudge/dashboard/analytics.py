@@ -8,9 +8,15 @@ from typing import Any
 from llmobserverjudge.dashboard.store import DashboardContext
 
 
-async def stats_overview(ctx: DashboardContext, *, tenant_id: str | None = None) -> dict[str, Any]:
-    traces = await ctx.span_store.list_traces(tenant_id=tenant_id, limit=500)
-    evals = await ctx.eval_results.list_all(tenant_id=tenant_id, limit=500)
+async def stats_overview(
+    ctx: DashboardContext, *, tenant_id: str | None = None, project_id: str | None = None
+) -> dict[str, Any]:
+    traces = await ctx.span_store.list_traces(
+        tenant_id=tenant_id, project_id=project_id, limit=500
+    )
+    evals = await ctx.eval_results.list_all(
+        tenant_id=tenant_id, project_id=project_id, limit=500
+    )
     scores = [e.final_score for e in evals]
     bad = sum(1 for e in evals if e.bad_case_detected)
     return {
@@ -49,9 +55,15 @@ async def stats_platform(ctx: DashboardContext) -> dict[str, Any]:
 
 
 async def stats_score_histogram(
-    ctx: DashboardContext, *, tenant_id: str | None = None, buckets: int = 10
+    ctx: DashboardContext,
+    *,
+    tenant_id: str | None = None,
+    project_id: str | None = None,
+    buckets: int = 10,
 ) -> dict[str, Any]:
-    evals = await ctx.eval_results.list_all(tenant_id=tenant_id, limit=2000)
+    evals = await ctx.eval_results.list_all(
+        tenant_id=tenant_id, project_id=project_id, limit=2000
+    )
     edges = [i / buckets for i in range(buckets + 1)]
     counts = [0] * buckets
     for e in evals:
@@ -67,9 +79,14 @@ async def stats_score_histogram(
 
 
 async def stats_per_eval(
-    ctx: DashboardContext, *, tenant_id: str | None = None
+    ctx: DashboardContext,
+    *,
+    tenant_id: str | None = None,
+    project_id: str | None = None,
 ) -> dict[str, Any]:
-    evals = await ctx.eval_results.list_all(tenant_id=tenant_id, limit=2000)
+    evals = await ctx.eval_results.list_all(
+        tenant_id=tenant_id, project_id=project_id, limit=2000
+    )
     by_agent: dict[str, list[float]] = {}
     for e in evals:
         for es in e.eval_scores:
@@ -96,7 +113,10 @@ async def stats_sampling(ctx: DashboardContext) -> dict[str, Any]:
 
 
 async def stats_attribution(
-    ctx: DashboardContext, *, tenant_id: str | None = None
+    ctx: DashboardContext,
+    *,
+    tenant_id: str | None = None,
+    project_id: str | None = None,
 ) -> dict[str, Any]:
     if ctx.attributions is None:
         return {"categories": [], "total": 0}
@@ -110,6 +130,8 @@ async def stats_attribution(
     for r in rows:
         if tenant_id and getattr(r, "tenant_id", None) != tenant_id:
             continue
+        if project_id and (getattr(r, "project_id", None) or "default") != project_id:
+            continue
         root = getattr(r, "root_cause", None) or (
             r.get("root_cause") if isinstance(r, dict) else None
         )
@@ -121,11 +143,16 @@ async def stats_attribution(
 
 
 async def stats_annotation_accuracy(
-    ctx: DashboardContext, *, tenant_id: str | None = None
+    ctx: DashboardContext,
+    *,
+    tenant_id: str | None = None,
+    project_id: str | None = None,
 ) -> dict[str, Any]:
     if ctx.annotations is None:
         return {"compared": 0, "score_agree_rate": None, "items": []}
-    rows = await ctx.annotations.list(tenant_id=tenant_id, status=None, limit=500)
+    rows = await ctx.annotations.list(
+        tenant_id=tenant_id, project_id=project_id, status=None, limit=500
+    )
     compared = 0
     agree = 0
     items = []
@@ -157,7 +184,12 @@ async def stats_annotation_accuracy(
     }
 
 
-async def stats_benchmark(ctx: DashboardContext, *, tenant_id: str | None = None) -> dict[str, Any]:
+async def stats_benchmark(
+    ctx: DashboardContext,
+    *,
+    tenant_id: str | None = None,
+    project_id: str | None = None,
+) -> dict[str, Any]:
     if ctx.benchmark_store is None:
         return {"reports": [], "count": 0}
     reports = []
@@ -171,14 +203,23 @@ async def stats_benchmark(ctx: DashboardContext, *, tenant_id: str | None = None
     for r in vals:
         if tenant_id and getattr(r, "tenant_id", None) != tenant_id:
             continue
+        if project_id and (getattr(r, "project_id", None) or "default") != project_id:
+            continue
         reports.append(r.model_dump(mode="json") if hasattr(r, "model_dump") else r)
     reports.sort(key=lambda x: str(x.get("created_at") or x.get("date") or ""), reverse=True)
     return {"reports": reports[:50], "count": len(reports)}
 
 
-async def stats_prompts(ctx: DashboardContext, *, tenant_id: str | None = None) -> dict[str, Any]:
+async def stats_prompts(
+    ctx: DashboardContext,
+    *,
+    tenant_id: str | None = None,
+    project_id: str | None = None,
+) -> dict[str, Any]:
     """Prompt usage from eval results (prompt_version_id counts)."""
-    evals = await ctx.eval_results.list_all(tenant_id=tenant_id, limit=2000)
+    evals = await ctx.eval_results.list_all(
+        tenant_id=tenant_id, project_id=project_id, limit=2000
+    )
     counts: Counter[str] = Counter()
     for e in evals:
         pid = e.prompt_version_id or "default"
@@ -218,6 +259,7 @@ async def stats_ab_contrast(
     control_version_id: str | None = None,
     treatment_version_id: str | None = None,
     tenant_id: str | None = None,
+    project_id: str | None = None,
 ) -> dict[str, Any]:
     """Control vs treatment contrast from eval_results.prompt_version_id."""
     experiment = None
@@ -230,7 +272,9 @@ async def stats_ab_contrast(
     if not control_version_id or not treatment_version_id:
         return {"error": "control_version_id and treatment_version_id required"}
 
-    evals = await ctx.eval_results.list_all(tenant_id=tenant_id, limit=5000)
+    evals = await ctx.eval_results.list_all(
+        tenant_id=tenant_id, project_id=project_id, limit=5000
+    )
     control = _arm_stats(evals, control_version_id)
     treatment = _arm_stats(evals, treatment_version_id)
     delta = None

@@ -15,6 +15,8 @@ from llmobserverjudge.gateway.auth import ApiKeyAuthenticator
 from llmobserverjudge.gateway.health import HealthTracker
 from llmobserverjudge.gateway.rate_limit import RateLimiter
 from llmobserverjudge.shared.mq import InMemoryMQ, MessageQueue
+from llmobserverjudge.shared.project import DEFAULT_PROJECT_ID
+from llmobserverjudge.shared.sql_project import InMemoryProjectStore, ProjectStore
 
 StartupHook = Callable[[FastAPI], Awaitable[None]]
 ShutdownHook = Callable[[FastAPI], Awaitable[None]]
@@ -40,6 +42,7 @@ def create_app(
     authenticator: ApiKeyAuthenticator | None = None,
     rate_limiter: RateLimiter | None = None,
     health_tracker: HealthTracker | None = None,
+    project_store: ProjectStore | None = None,
     *,
     on_startup: StartupHook | None = None,
     on_shutdown: ShutdownHook | None = None,
@@ -49,6 +52,7 @@ def create_app(
     limiter = rate_limiter or RateLimiter()
     health = health_tracker or HealthTracker()
     telemetry = TelemetryStore()
+    projects = project_store or InMemoryProjectStore()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -57,6 +61,7 @@ def create_app(
         app.state.limiter = limiter
         app.state.health = health
         app.state.telemetry = telemetry
+        app.state.projects = projects
         app.state.shutting_down = False
         if on_startup is not None:
             await on_startup(app)
@@ -71,6 +76,7 @@ def create_app(
     app.state.limiter = limiter
     app.state.health = health
     app.state.telemetry = telemetry
+    app.state.projects = projects
     app.state.shutting_down = False
 
     def _auth(api_key: str | None):
@@ -105,20 +111,40 @@ def create_app(
         body: IngestRequest,
         request: Request,
         x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+        x_project_id: str | None = Header(default=None, alias="X-Project-Id"),
     ) -> IngestAccepted:
         if request.app.state.shutting_down:
             raise HTTPException(503, "shutting down")
         tenant = _auth(x_api_key)
         cost = float(len(body.spans))
-        if not request.app.state.limiter.allow_ingest(tenant.id, cost=cost):
+        limiter = request.app.state.limiter
+        allow = getattr(limiter, "allow_ingest_async", None)
+        ok = (
+            await allow(tenant.id, cost=cost)
+            if allow is not None
+            else limiter.allow_ingest(tenant.id, cost=cost)
+        )
+        if not ok:
             raise HTTPException(
                 429, "rate limited", headers={"Retry-After": "10"}
             )
+
+        # Resolve project: header > body span.project_id > default
+        requested = (x_project_id or "").strip() or None
+        if not requested and body.spans:
+            requested = (body.spans[0].project_id or "").strip() or None
+        try:
+            project = await request.app.state.projects.resolve(
+                tenant.id, project_id=requested or DEFAULT_PROJECT_ID
+            )
+        except KeyError as exc:
+            raise HTTPException(404, str(exc)) from exc
 
         enriched: list[dict[str, Any]] = []
         for span in body.spans:
             data = span.model_dump(mode="json", exclude_none=True)
             data["tenant_id"] = tenant.id
+            data["project_id"] = project.project_id
             enriched.append(data)
 
         try:
@@ -139,7 +165,14 @@ def create_app(
         x_api_key: str | None = Header(default=None, alias="X-API-Key"),
     ) -> dict[str, str]:
         tenant = _auth(x_api_key)
-        if not request.app.state.limiter.allow_telemetry(tenant.id):
+        limiter = request.app.state.limiter
+        allow = getattr(limiter, "allow_telemetry_async", None)
+        ok = (
+            await allow(tenant.id)
+            if allow is not None
+            else limiter.allow_telemetry(tenant.id)
+        )
+        if not ok:
             raise HTTPException(
                 429, "telemetry rate limited", headers={"Retry-After": "30"}
             )

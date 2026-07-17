@@ -66,7 +66,9 @@ async def test_react_completes_with_tools_and_root_cause() -> None:
     assert result.root_cause == "RUNTIME_ERROR"
     assert "get_trace_summary" in result.tools_called
     assert result.rounds >= 3
-    saved = await ckpt.load(job.trace_id)
+    saved = await ckpt.load(
+        job.trace_id, tenant_id=job.tenant_id, project_id=job.project_id or "default"
+    )
     assert saved is not None
     assert saved["round"] >= 3
 

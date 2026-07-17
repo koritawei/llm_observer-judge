@@ -30,6 +30,7 @@ class SqlAnnotationStore:
             annotation_id=row.annotation_id,
             trace_id=row.trace_id,
             tenant_id=row.tenant_id,
+            project_id=getattr(row, "project_id", None) or "default",
             eval_agent_id=row.eval_agent_id,
             trigger_reason=row.trigger_reason,
             status=AnnotationStatus(row.status),
@@ -77,6 +78,7 @@ class SqlAnnotationStore:
                 annotation_id=record.annotation_id,
                 trace_id=record.trace_id,
                 tenant_id=record.tenant_id,
+                project_id=getattr(record, "project_id", None) or "default",
                 eval_agent_id=record.eval_agent_id,
                 trigger_reason=record.trigger_reason,
                 status=AnnotationStatus.PENDING.value,
@@ -114,6 +116,7 @@ class SqlAnnotationStore:
         self,
         *,
         tenant_id: str | None = None,
+        project_id: str | None = None,
         status: AnnotationStatus | None = None,
         limit: int = 100,
     ) -> list[HumanAnnotation]:
@@ -121,6 +124,8 @@ class SqlAnnotationStore:
             stmt = select(HumanAnnotationRow).order_by(HumanAnnotationRow.created_at)
             if tenant_id is not None:
                 stmt = stmt.where(HumanAnnotationRow.tenant_id == tenant_id)
+            if project_id is not None:
+                stmt = stmt.where(HumanAnnotationRow.project_id == project_id)
             if status is not None:
                 stmt = stmt.where(HumanAnnotationRow.status == status.value)
             stmt = stmt.limit(limit)
@@ -237,9 +242,11 @@ class SqlAnnotationStore:
             await session.commit()
             return count
 
-    async def pending_count(self, tenant_id: str) -> int:
+    async def pending_count(
+        self, tenant_id: str, *, project_id: str | None = None
+    ) -> int:
         async with self._sf() as session:
-            q = await session.execute(
+            stmt = (
                 select(func.count())
                 .select_from(HumanAnnotationRow)
                 .where(
@@ -247,6 +254,9 @@ class SqlAnnotationStore:
                     HumanAnnotationRow.status == AnnotationStatus.PENDING.value,
                 )
             )
+            if project_id is not None:
+                stmt = stmt.where(HumanAnnotationRow.project_id == project_id)
+            q = await session.execute(stmt)
             return int(q.scalar_one())
 
 

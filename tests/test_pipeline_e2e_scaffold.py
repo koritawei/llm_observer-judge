@@ -33,6 +33,7 @@ async def test_scaffold_e2e_path() -> None:
                 "status": "OK",
                 "kind": "LLM",
                 "sampled": True,
+                "response": "a sufficiently long answer for quality judge",
             }
         ]
     }

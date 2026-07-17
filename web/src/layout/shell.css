@@ -99,11 +99,30 @@
   letter-spacing: 0.03em;
 }
 
-.session input {
-  font-size: 0.8rem;
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: 400;
+.session input,
+.session select {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg0);
+  color: inherit;
+  font: inherit;
+}
+
+.session button {
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg0);
+  cursor: pointer;
+}
+
+.session-error {
+  color: #b42318;
+  font-size: 0.7rem;
+  padding: 0 0.1rem;
 }
 
 .main {

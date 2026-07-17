@@ -11,15 +11,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api, getTenantId } from "../api/client";
+import { api, scopeQuery } from "../api/client";
 
 const COLORS = ["#0d9488", "#175cd3", "#b54708", "#b42318", "#667085", "#027a48"];
 
 export function Analytics() {
   const [data, setData] = useState<Record<string, unknown>>({});
   const [error, setError] = useState<string | null>(null);
-  const tenant = getTenantId();
-  const q = `tenant_id=${encodeURIComponent(tenant)}`;
+  const q = scopeQuery();
 
   useEffect(() => {
     const load = async () => {
@@ -46,7 +45,7 @@ export function Analytics() {
       }
     };
     void load();
-  }, [tenant]);
+  }, [q]);
 
   const overview = (data.overview || {}) as Record<string, number>;
   const hist = ((data.histogram as { buckets?: { lo: number; hi: number; count: number }[] })

@@ -12,7 +12,11 @@ LLM 可观测与 LLM-as-a-Judge 平台：接入 Trace/Span → 采样落库 → 
 | 标注 | 按路由规则触发，**旁路**，不阻断主链路 |
 | 看板 | Trace 列表/详情、执行图与时间线同源状态、标注队列、统计、A/B、运维 |
 | Prompt | 版本管理 + A/B 分流（`trace_id` hash） |
+| 多租户 | API Key → tenant；租户下多项目；**项目名仅在租户内唯一**（跨租户可同名） |
 | 运行时 | 单进程 DevStack（内存 MQ）或多进程（Redis Streams + SQL） |
+| 编排 | **LangGraph** StateGraph（Eval + Attribution ReAct） |
+| 埋点 | **OpenTelemetry** SDK → Gateway buffer（可选镜像 Langfuse） |
+| 限流 | **limits** MovingWindow（内存 / Redis） |
 
 ## 流水线
 
@@ -93,7 +97,9 @@ llmj-stack
 | `/benchmark` | 批次评测 |
 | `/prompt` | Prompt 版本与 A/B 实验 |
 
-默认 API Key：`dev-key`，租户：`tenant-dev`。
+默认 API Key：`dev-key`，租户：`tenant-dev`，默认项目：`default`。
+
+摄取时可通过 `X-Project-Id`（或 span.project_id）指定项目；Dashboard / Annotation 查询需带 `tenant_id` + `project_id`。前端侧栏可切换 Tenant / Project，并创建同租户下的新项目。
 
 ### 2. 前端 Dashboard
 
@@ -142,9 +148,19 @@ cp .env.example .env   # 填密钥
 docker compose --profile monolith up -d --build
 # API :8080  ·  UI :3000（若启用 web 服务）
 
-# 多进程：gateway + ingest/dispatch/eval/attribution/annotation + Postgres + Redis Streams
+# 多进程：gateway（含 Dashboard BFF）+ ingest/dispatch/eval/attribution/annotation
+# + Postgres + Redis Streams（可水平扩展）
 docker compose --profile split up -d --build
+# 扩容示例：
+# docker compose --profile split up -d --scale eval=3 --scale ingest=2
 ```
+
+Split 模式要点：
+- Gateway 挂载 `/dashboard`、`/annotation`、`/prompt`、`/benchmark`
+- Span / Eval 结果 / Outbox / Prompt A/B / Checkpoint 落 Postgres
+- MQ 处理成功后 ACK；idle pending 可 reclaim
+- Outbox 使用 `FOR UPDATE SKIP LOCKED` 防多 Dispatch 重复领取
+- 幂等键优先 Redis，回退 SQL
 
 ## 数据库迁移
 

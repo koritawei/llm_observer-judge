@@ -14,7 +14,7 @@ from llmobserverjudge.annotation_worker.store import (
 from llmobserverjudge.contracts.idempotency import annotation_key
 from llmobserverjudge.contracts.models import AnnotationTask, HumanAnnotation
 from llmobserverjudge.contracts.topics import Topic
-from llmobserverjudge.shared.mq import MessageQueue
+from llmobserverjudge.shared.mq import MQ_MSG_ID, MessageQueue
 
 logger = logging.getLogger(__name__)
 
@@ -33,21 +33,44 @@ class AnnotationWorker:
         self.store = store or InMemoryAnnotationStore()
         self._seen: set[str] = set()
 
-    async def process_once(self, max_batch: int = 100) -> list[HumanAnnotation]:
+    async def _pull(self, max_batch: int) -> list[dict]:
         messages = await self.mq.drain(Topic.ANNOTATION_JOBS, max_batch)
+        reclaim = getattr(self.mq, "reclaim_stale", None)
+        if reclaim is not None and len(messages) < max_batch:
+            stale = await reclaim(
+                Topic.ANNOTATION_JOBS, max_count=max_batch - len(messages)
+            )
+            messages.extend(stale)
+        return messages
+
+    async def process_once(self, max_batch: int = 100) -> list[HumanAnnotation]:
+        messages = await self._pull(max_batch)
         out: list[HumanAnnotation] = []
+        ack_ids: list[str] = []
         for raw in messages:
+            msg_id = raw.pop(MQ_MSG_ID, None)
             try:
                 row = await self._ingest(raw)
                 if row is not None:
                     out.append(row)
+                if msg_id:
+                    ack_ids.append(str(msg_id))
             except Exception:
-                logger.exception("annotation_ingest_failed id=%s", raw.get("annotation_id"))
+                logger.exception(
+                    "annotation_ingest_failed id=%s", raw.get("annotation_id")
+                )
+        if ack_ids:
+            await self.mq.ack(Topic.ANNOTATION_JOBS, ack_ids)
         return out
 
     async def _ingest(self, raw: dict) -> HumanAnnotation | None:
         task = AnnotationTask.model_validate(raw)
-        key = task.idempotency_key or annotation_key(task.trace_id, task.eval_agent_id)
+        key = task.idempotency_key or annotation_key(
+            task.trace_id,
+            task.eval_agent_id,
+            tenant_id=task.tenant_id,
+            project_id=getattr(task, "project_id", None) or "default",
+        )
         if key in self._seen:
             existing = await self.store.get_by_idempotency(key)
             return existing
@@ -55,6 +78,7 @@ class AnnotationWorker:
             annotation_id=task.annotation_id,
             trace_id=task.trace_id,
             tenant_id=task.tenant_id,
+            project_id=getattr(task, "project_id", None) or "default",
             eval_agent_id=task.eval_agent_id,
             trigger_reason=task.trigger_reason,
             auto_score=task.auto_score,

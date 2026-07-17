@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api, getTenantId } from "../api/client";
+import { api, getProjectId, getTenantId, scopeQuery } from "../api/client";
 import { formatScore, shortId } from "../lib/format";
 
 type PromptItem = {
@@ -61,6 +61,7 @@ type Contrast = {
 
 export function ABTests() {
   const tenant = getTenantId();
+  const project = getProjectId();
   const [prompts, setPrompts] = useState<PromptItem[]>([]);
   const [versions, setVersions] = useState<Version[]>([]);
   const [experiments, setExperiments] = useState<Experiment[]>([]);
@@ -107,6 +108,7 @@ export function ABTests() {
     const q = new URLSearchParams({
       experiment_id: expId,
       tenant_id: tenant,
+      project_id: project,
     });
     const body = await api.get<Contrast>(`/dashboard/api/v1/stats/ab_contrast?${q}`);
     setContrast(body);
@@ -116,11 +118,11 @@ export function ABTests() {
     void load()
       .then(() => loadVersions(promptId))
       .catch((e) => setError(String(e)));
-  }, [tenant]);
+  }, [tenant, project]);
 
   useEffect(() => {
     void loadContrast(selectedExp).catch((e) => setError(String(e)));
-  }, [selectedExp, tenant]);
+  }, [selectedExp, tenant, project]);
 
   const chartData = useMemo(() => {
     if (!contrast || contrast.error) return [];

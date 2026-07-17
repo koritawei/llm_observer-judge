@@ -37,6 +37,8 @@ async def test_redis_streams_publish_drain_ack(redis_client) -> None:
     batch = await sub.drain(Topic.SPANS, max_count=10)
     assert len(batch) == 1
     assert batch[0]["span_id"] == "s1"
+    assert "_mq_id" in batch[0]
+    await sub.ack(Topic.SPANS, [batch[0]["_mq_id"]])
     assert await sub.drain(Topic.SPANS) == []
 
 

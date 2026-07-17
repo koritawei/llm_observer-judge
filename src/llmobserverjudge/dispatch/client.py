@@ -34,7 +34,12 @@ class DispatchClient:
     async def publish_annotation(self, task: AnnotationTask) -> None:
         payload = task.model_dump(mode="json")
         if not payload.get("idempotency_key"):
-            payload["idempotency_key"] = annotation_key(task.trace_id, task.eval_agent_id)
+            payload["idempotency_key"] = annotation_key(
+                task.trace_id,
+                task.eval_agent_id,
+                tenant_id=task.tenant_id,
+                project_id=getattr(task, "project_id", None) or "default",
+            )
         await self.mq.publish(self.COMPONENT, Topic.ANNOTATION_JOBS, payload)
 
     async def publish_attribution(
@@ -47,6 +52,7 @@ class DispatchClient:
         priority: str,
         score_snapshot: dict,
         trace_summary: dict | None = None,
+        project_id: str = "default",
     ) -> None:
         await self.mq.publish(
             self.COMPONENT,
@@ -54,12 +60,18 @@ class DispatchClient:
             {
                 "trace_id": trace_id,
                 "tenant_id": tenant_id,
+                "project_id": project_id,
                 "eval_agent_id": eval_agent_id,
                 "attribution_agent": attribution_agent,
                 "priority": priority,
                 "score_snapshot": score_snapshot,
                 "trace_summary": trace_summary or {},
-                "idempotency_key": attribution_key(trace_id, eval_agent_id),
+                "idempotency_key": attribution_key(
+                    trace_id,
+                    eval_agent_id,
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                ),
             },
         )
 
@@ -76,6 +88,7 @@ class DispatchClient:
         is_bad_case: bool | None = None,
         trace_summary: dict | None = None,
         config: DispatchSection | None = None,
+        project_id: str = "default",
     ) -> dict[str, Any]:
         """Apply eval_routing_rules → attribution / annotation (Option X).
 
@@ -91,10 +104,13 @@ class DispatchClient:
         if rule is None:
             return result
 
+        pid = project_id or str((trace_summary or {}).get("project_id") or "default")
+
         if should_trigger_attribution(rule, score=score, is_bad_case=is_bad_case):
             await self.publish_attribution(
                 trace_id=trace_id,
                 tenant_id=tenant_id,
+                project_id=pid,
                 eval_agent_id=eval_agent_id,
                 attribution_agent=rule.attribution_agent,
                 priority=rule.attribution_priority.value,
@@ -117,6 +133,7 @@ class DispatchClient:
                 annotation_id=str(uuid4()),
                 trace_id=trace_id,
                 tenant_id=tenant_id,
+                project_id=pid,
                 eval_agent_id=eval_agent_id,
                 trigger_reason=rule.annotation_trigger.value,
                 auto_score=score,

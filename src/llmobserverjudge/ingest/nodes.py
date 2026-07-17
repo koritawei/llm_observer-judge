@@ -42,6 +42,8 @@ class IngestState:
         return {
             "trace_id": self.trace_id,
             "span_id": self.span_id,
+            "tenant_id": self.tenant_id,
+            "project_id": str(self.span.get("project_id") or "default"),
             "name": self.span.get("name"),
             "status": self.span.get("status"),
             "model": self.span.get("model"),

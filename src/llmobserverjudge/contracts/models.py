@@ -42,6 +42,7 @@ class Span(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     tenant_id: str = Field(min_length=1)
+    project_id: str = Field(default="default", min_length=1)
     trace_id: str
     span_id: str
     name: str
@@ -109,6 +110,7 @@ class EvalJob(BaseModel):
 
     trace_id: str
     tenant_id: str
+    project_id: str = "default"
     trace_summary: dict[str, Any]
     eval_configs: list[EvalConfig] = Field(min_length=1)
     priority: Priority
@@ -143,6 +145,7 @@ class ScoreResult(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     tenant_id: str
+    project_id: str = "default"
     trace_id: str
     eval_scores: list[EvalScoreEntry]
     final_score: float
@@ -158,6 +161,7 @@ class GraphState(BaseModel):
 
     trace_id: str
     tenant_id: str
+    project_id: str = "default"
     trace_summary: dict[str, Any]
     prompt_version_id: str | None = None
     eval_configs: list[dict[str, Any]] = Field(default_factory=list)
@@ -181,6 +185,7 @@ class PendingEvalJob(BaseModel):
     id: str
     trace_id: str
     tenant_id: str
+    project_id: str = "default"
     trace_summary: dict[str, Any]
     prompt_version_id: str | None = None
     published: bool = False
@@ -202,6 +207,7 @@ class AnnotationTask(BaseModel):
     annotation_id: str
     trace_id: str
     tenant_id: str
+    project_id: str = "default"
     eval_agent_id: str
     trigger_reason: str
     auto_score: float | None = None
@@ -218,6 +224,7 @@ class HumanAnnotation(BaseModel):
     annotation_id: str
     trace_id: str
     tenant_id: str
+    project_id: str = "default"
     eval_agent_id: str
     trigger_reason: str
     status: AnnotationStatus = AnnotationStatus.PENDING
@@ -246,6 +253,7 @@ class AttributionJob(BaseModel):
 
     trace_id: str
     tenant_id: str
+    project_id: str = "default"
     eval_agent_id: str
     priority: Priority
     idempotency_key: str
@@ -261,6 +269,7 @@ class AttributionResult(BaseModel):
     attribution_id: str
     trace_id: str
     tenant_id: str
+    project_id: str = "default"
     eval_agent_id: str
     attribution_agent: str
     root_cause: str
@@ -295,6 +304,7 @@ class BatchJob(BaseModel):
 
     batch_job_id: str
     tenant_id: str
+    project_id: str = "default"
     name: str = ""
     source_config: dict[str, Any] = Field(default_factory=dict)
     eval_configs: list[dict[str, Any]] = Field(default_factory=list)
@@ -314,6 +324,7 @@ class BatchEvalTask(BaseModel):
     batch_job_id: str
     trace_id: str
     tenant_id: str = ""
+    project_id: str = "default"
     eval_config_id: str = ""
     status: BatchTaskStatus = BatchTaskStatus.PENDING
     attempt: int = 0
@@ -331,6 +342,7 @@ class BenchmarkReport(BaseModel):
 
     report_id: str
     tenant_id: str
+    project_id: str = "default"
     batch_job_id: str | None = None
     date: str | None = None  # YYYY-MM-DD for T+1
     summary: dict[str, Any] = Field(default_factory=dict)

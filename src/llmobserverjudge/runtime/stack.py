@@ -23,12 +23,7 @@ from llmobserverjudge.benchmark.redis_signal import create_batch_signal_from_env
 from llmobserverjudge.benchmark.service import BenchmarkService
 from llmobserverjudge.contracts.topics import Topic
 from llmobserverjudge.dashboard.api import create_dashboard_app
-from llmobserverjudge.dashboard.events import PipelineEventBus
-from llmobserverjudge.dashboard.store import (
-    DashboardContext,
-    EvalResultStore,
-    SamplingStatsStore,
-)
+from llmobserverjudge.dashboard.store import DashboardContext
 from llmobserverjudge.dispatch.client import DispatchClient
 from llmobserverjudge.dispatch.config_loader import DispatchConfigLoader, load_dispatch_config
 from llmobserverjudge.dispatch.publisher import DispatchPublisher
@@ -41,7 +36,7 @@ from llmobserverjudge.ingest.worker import IngestWorker
 from llmobserverjudge.prompt_admin.api import create_prompt_admin_app
 from llmobserverjudge.shared.mq import InMemoryMQ, MessageQueue, create_mq_from_env
 from llmobserverjudge.shared.persistence import PersistenceBundle, create_persistence
-from llmobserverjudge.shared.storage import InMemorySpanStore
+from llmobserverjudge.shared.project_api import create_project_app
 
 logger = logging.getLogger(__name__)
 
@@ -128,10 +123,10 @@ class DevStack:
         self.benchmark: BenchmarkService | None = None
         self.config_loader: DispatchConfigLoader | None = None
         self.app: FastAPI | None = None
-        self.span_store = InMemorySpanStore()
-        self.eval_results = EvalResultStore()
-        self.sampling_stats = SamplingStatsStore()
-        self.event_bus = PipelineEventBus()
+        self.span_store: Any = None
+        self.eval_results: Any = None
+        self.sampling_stats: Any = None
+        self.event_bus: Any = None
         self.dashboard_ctx: DashboardContext | None = None
 
     @classmethod
@@ -152,10 +147,18 @@ class DevStack:
             self.config_loader = DispatchConfigLoader()
             logger.warning("dispatch config not found; using built-in defaults")
 
+        from llmobserverjudge.shared.redis_event_bus import create_event_bus_from_env
+
+        self.span_store = self.persistence.spans
+        self.eval_results = self.persistence.eval_results
+        self.sampling_stats = self.persistence.sampling
+        self.event_bus = create_event_bus_from_env()
+
         self.ingest = IngestWorker(
             self.mq,
             outbox=self.persistence.outbox,
             store=self.span_store,
+            idempotency=self.persistence.idempotency,
             force_sample=self.force_sample,
             sampling_stats=self.sampling_stats,
             event_bus=self.event_bus,
@@ -173,10 +176,12 @@ class DevStack:
             eval_results=self.eval_results,
             event_bus=self.event_bus,
             prompt_service=self.persistence.prompts,
+            idempotency=self.persistence.idempotency,
         )
         self.attribution = AttributionWorker(
             self.mq,
             store=self.persistence.attributions,
+            checkpoint=self.persistence.checkpoints,
             use_env_react_policy=True,
         )
         self.annotation = AnnotationWorker(self.mq, store=self.persistence.annotations)
@@ -192,20 +197,30 @@ class DevStack:
         assert self.benchmark is not None
 
         async def on_startup(_app: FastAPI) -> None:
+            start = getattr(self.event_bus, "start", None)
+            if start is not None:
+                await start()
             await self.start_workers()
 
         async def on_shutdown(_app: FastAPI) -> None:
             await self.stop_workers()
+            stop = getattr(self.event_bus, "stop", None)
+            if stop is not None:
+                await stop()
 
         gw = create_app(
             mq=self.mq,
             authenticator=ApiKeyAuthenticator(self.api_keys),
+            project_store=self.persistence.projects,
             on_startup=on_startup,
             on_shutdown=on_shutdown,
         )
         ann = create_annotation_app(self.persistence.annotations)
         bench = create_benchmark_app(self.benchmark)
         prompt_admin = create_prompt_admin_app(self.persistence.prompts)
+        projects = create_project_app(
+            self.persistence.projects, authenticator=ApiKeyAuthenticator(self.api_keys)
+        )
 
         async def stack_info() -> dict[str, Any]:
             return {
@@ -232,6 +247,7 @@ class DevStack:
         gw.mount("/annotation", ann)
         gw.mount("/benchmark", bench)
         gw.mount("/prompt", prompt_admin)
+        gw.mount("/projects", projects)
         gw.mount("/dashboard", dash)
 
         @gw.get("/stackz")

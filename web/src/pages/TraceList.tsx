@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api, getTenantId } from "../api/client";
+import { api, getProjectId, getTenantId, scopeQuery } from "../api/client";
 import { formatMs, formatScore, formatTokens, formatTs, shortId } from "../lib/format";
 
 type ScoreChip = {
@@ -36,17 +36,16 @@ export function TraceList() {
   const navigate = useNavigate();
 
   const load = useCallback(() => {
-    const tenant = getTenantId();
     setLoading(true);
     setError(null);
     api
       .get<{ items: TraceItem[]; count: number }>(
-        `/dashboard/api/v1/traces?tenant_id=${encodeURIComponent(tenant)}&limit=100`,
+        `/dashboard/api/v1/traces?${scopeQuery({ limit: "100" })}`,
       )
       .then((r) => setItems(r.items))
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
-  }, []);
+  }, [getTenantId(), getProjectId()]);
 
   useEffect(() => {
     load();
