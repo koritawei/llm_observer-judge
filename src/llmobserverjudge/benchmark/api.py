@@ -47,6 +47,7 @@ def create_benchmark_app(service: BenchmarkService | None = None) -> FastAPI:
         )
         report = await svc.store.get_report_by_batch(job.batch_job_id)
         return {
+            "batch_job_id": job.batch_job_id,
             "batch_job": job.model_dump(mode="json"),
             "report_id": report.report_id if report else None,
         }
@@ -70,11 +71,15 @@ def create_benchmark_app(service: BenchmarkService | None = None) -> FastAPI:
 
     @app.get("/api/v1/batch-eval/{batch_job_id}")
     async def get_batch(batch_job_id: str) -> dict[str, Any]:
+        batch_job_id = (batch_job_id or "").strip()
+        if not batch_job_id:
+            raise HTTPException(400, "batch_job_id is required")
         job = await svc.store.get_job(batch_job_id)
         if job is None:
             raise HTTPException(404, "not found")
         tasks = await svc.store.list_tasks(batch_job_id)
         return {
+            "batch_job_id": batch_job_id,
             "batch_job": job.model_dump(mode="json"),
             "tasks": [t.model_dump(mode="json") for t in tasks],
             "signal": await svc.signal.snapshot(batch_job_id),

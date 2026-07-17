@@ -177,6 +177,16 @@ async def test_benchmark_api() -> None:
         assert r.status_code == 200
         body = r.json()
         assert body["report_id"]
+        assert body["batch_job_id"]
+        assert body["batch_job"]["batch_job_id"] == body["batch_job_id"]
         gr = await client.get(f"/api/v1/benchmarks/{body['report_id']}")
         assert gr.status_code == 200
         assert gr.json()["summary"]["sample_size"] >= 1
+        gb = await client.get(f"/api/v1/batch-eval/{body['batch_job_id']}")
+        assert gb.status_code == 200
+        batch = gb.json()
+        assert batch["batch_job_id"] == body["batch_job_id"]
+        assert isinstance(batch["tasks"], list)
+        assert len(batch["tasks"]) >= 1
+        assert "signal" in batch
+        assert batch["batch_job"]["batch_job_id"] == body["batch_job_id"]
