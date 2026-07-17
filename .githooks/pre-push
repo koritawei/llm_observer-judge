@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Block push if any outgoing commit still contains a Cursor Co-authored-by trailer.
+set -euo pipefail
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [[ -z "${local_sha:-}" || "$local_sha" == "$zero" ]] && continue
+  if [[ "$remote_sha" == "$zero" ]]; then
+    range="$local_sha"
+  else
+    range="${remote_sha}..${local_sha}"
+  fi
+  if git log --format='%B' "$range" 2>/dev/null | grep -qiE '^Co-authored-by:[[:space:]]*Cursor[[:space:]]*<'; then
+    echo "error: push blocked — commit message contains Co-authored-by: Cursor" >&2
+    echo "hint: run 'git commit --amend' or rebase to remove the trailer, then push again." >&2
+    exit 1
+  fi
+done
+exit 0

@@ -48,10 +48,24 @@ pip install -e ".[dev]"
 pip install -e ".[postgres,redis,dev]"
 
 cp .env.example .env               # 填入密钥后保存（.env 已 gitignore）
+
+# 启用 Git hooks：自动去除并阻止 Co-authored-by: Cursor trailer（commit + push）
+./scripts/install-githooks.sh
+
 pytest
 ```
 
 `llmj-stack` / `llmj-worker` / `llmj-db` 启动时会自动加载仓库根目录 `.env`。
+
+### Git hooks（禁止 Cursor co-author）
+
+clone 后执行一次 `./scripts/install-githooks.sh`，会在**本仓库**设置 `core.hooksPath=.githooks`：
+
+| Hook | 作用 |
+|------|------|
+| `prepare-commit-msg` | 提交前自动删除 `Co-authored-by: Cursor <...>` |
+| `commit-msg` | 若仍有残留则拒绝提交 |
+| `pre-push` | 若待推送 commit 含该 trailer 则拒绝 push |
 
 ## 配置（`.env`）
 
