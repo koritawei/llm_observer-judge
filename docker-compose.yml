@@ -1,0 +1,199 @@
+# LLMJudge local infra
+# - default: monolith DevStack (llmj-stack)
+# - profile split: Redis Streams multi-process workers
+#
+#   cp .env.example .env
+#   docker compose --profile monolith up -d --build
+#   docker compose --profile split up -d --build
+#
+# Secrets & infra URLs come from `.env` (see `.env.example`).
+
+x-app-env: &app-env
+  LLMJUDGE_PERSISTENCE: ${LLMJUDGE_PERSISTENCE_COMPOSE:-sql}
+  LLMJUDGE_DATABASE_URL: ${LLMJUDGE_DATABASE_URL_COMPOSE:-postgresql+asyncpg://llmj:llmj@postgres:5432/llmjudge}
+  LLMJUDGE_SCHEMA_MODE: ${LLMJUDGE_SCHEMA_MODE:-alembic}
+  LLMJUDGE_REDIS_URL: ${LLMJUDGE_REDIS_URL_COMPOSE:-redis://redis:6379/0}
+  LLMJUDGE_MQ: ${LLMJUDGE_MQ_COMPOSE:-redis}
+  LLMJUDGE_FORCE_SAMPLE: ${LLMJUDGE_FORCE_SAMPLE:-1}
+  LLMJUDGE_API_KEYS: ${LLMJUDGE_API_KEYS:-dev-key:tenant-dev}
+  LLMJUDGE_DISPATCH_CONFIG: ${LLMJUDGE_DISPATCH_CONFIG_COMPOSE:-/app/configs/dispatch.yaml}
+  LLMJUDGE_POLL_INTERVAL: ${LLMJUDGE_POLL_INTERVAL:-0.05}
+  LLMJUDGE_LOG_LEVEL: ${LLMJUDGE_LOG_LEVEL:-INFO}
+  LLMJUDGE_JUDGE_BASE_URL: ${LLMJUDGE_JUDGE_BASE_URL:-}
+  LLMJUDGE_JUDGE_API_KEY: ${LLMJUDGE_JUDGE_API_KEY:-}
+  LLMJUDGE_JUDGE_MODEL_NAME: ${LLMJUDGE_JUDGE_MODEL_NAME:-}
+  LLMJUDGE_JUDGE_MODEL_ID: ${LLMJUDGE_JUDGE_MODEL_ID:-http-judge}
+  LLMJUDGE_JUDGE_TIMEOUT: ${LLMJUDGE_JUDGE_TIMEOUT:-90}
+  LLMJUDGE_JUDGE_ENFORCE_SSRF: ${LLMJUDGE_JUDGE_ENFORCE_SSRF:-0}
+  LLMJUDGE_REACT_BASE_URL: ${LLMJUDGE_REACT_BASE_URL:-}
+  LLMJUDGE_REACT_API_KEY: ${LLMJUDGE_REACT_API_KEY:-}
+  LLMJUDGE_REACT_MODEL_NAME: ${LLMJUDGE_REACT_MODEL_NAME:-}
+
+x-app-build: &app-build
+  build: .
+  env_file:
+    - .env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    migrate:
+      condition: service_completed_successfully
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: llmj-postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-llmj}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-llmj}
+      POSTGRES_DB: ${POSTGRES_DB:-llmjudge}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - llmj_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: llmj-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - llmj_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build: .
+    container_name: llmj-migrate
+    env_file:
+      - .env
+    environment:
+      LLMJUDGE_DATABASE_URL: ${LLMJUDGE_DATABASE_URL_COMPOSE:-postgresql+asyncpg://llmj:llmj@postgres:5432/llmjudge}
+    command: ["llmj-db", "upgrade"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # --- monolith DevStack ---
+  #   docker compose --profile monolith up -d --build
+  stack:
+    <<: *app-build
+    container_name: llmj-stack
+    profiles: ["monolith"]
+    ports:
+      - "${LLMJUDGE_PORT:-8080}:8080"
+    environment:
+      <<: *app-env
+      # monolith keeps in-process MQ; Redis/PG still available via env
+      LLMJUDGE_MQ: memory
+    command: ["llmj-stack"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz')",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  # Dashboard SPA (nginx) — monolith only (needs /dashboard on stack)
+  #   http://127.0.0.1:5173 or :3000
+  web:
+    build: ./web
+    container_name: llmj-web
+    profiles: ["monolith"]
+    ports:
+      - "3000:80"
+    depends_on:
+      stack:
+        condition: service_healthy
+
+  # --- multi-process (Redis Streams) ---
+  gateway:
+    <<: *app-build
+    container_name: llmj-gateway
+    profiles: ["split"]
+    ports:
+      - "${LLMJUDGE_PORT:-8080}:8080"
+    environment:
+      <<: *app-env
+      LLMJUDGE_MQ_GROUP: gateway
+    command: ["llmj-worker", "gateway"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz')",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  ingest:
+    <<: *app-build
+    container_name: llmj-ingest
+    profiles: ["split"]
+    environment:
+      <<: *app-env
+      LLMJUDGE_MQ_GROUP: ingest
+    command: ["llmj-worker", "ingest"]
+
+  dispatch:
+    <<: *app-build
+    container_name: llmj-dispatch
+    profiles: ["split"]
+    environment:
+      <<: *app-env
+      LLMJUDGE_MQ_GROUP: dispatch
+    command: ["llmj-worker", "dispatch"]
+
+  eval:
+    <<: *app-build
+    container_name: llmj-eval
+    profiles: ["split"]
+    environment:
+      <<: *app-env
+      LLMJUDGE_MQ_GROUP: eval
+    command: ["llmj-worker", "eval"]
+
+  attribution:
+    <<: *app-build
+    container_name: llmj-attribution
+    profiles: ["split"]
+    environment:
+      <<: *app-env
+      LLMJUDGE_MQ_GROUP: attribution
+    command: ["llmj-worker", "attribution"]
+
+  annotation:
+    <<: *app-build
+    container_name: llmj-annotation
+    profiles: ["split"]
+    environment:
+      <<: *app-env
+      LLMJUDGE_MQ_GROUP: annotation
+    command: ["llmj-worker", "annotation"]
+
+volumes:
+  llmj_pg_data:
+  llmj_redis_data:

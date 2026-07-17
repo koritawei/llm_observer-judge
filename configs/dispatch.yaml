@@ -1,0 +1,33 @@
+# Dispatch routing — SDD-EV-27 / design §7.1
+# Hot-reload: DispatchConfigLoader polls mtime and CoW-swaps on valid parse.
+
+version: 1
+
+dispatch:
+  default_model: default-judge
+  publish_priority_shards: false
+
+  routing_rules:
+    - condition: "tags contains 'safety'"
+      judge_agents: [judge_safety, judge_code_eval]
+      priority: P0
+    - condition: "always"
+      judge_agents: [judge_quality, judge_fast_vllm]
+      priority: P2
+
+  eval_routing_rules:
+    - eval_agent_id: judge_safety
+      bad_case_threshold: 0.7
+      attribution_agent: attributor_default
+      attribution_priority: P0
+      annotation_trigger: always
+    - eval_agent_id: judge_code_eval
+      bad_case_threshold: 0.6
+      attribution_agent: attributor_default
+      attribution_priority: P0
+      annotation_trigger: never
+    - eval_agent_id: judge_quality
+      bad_case_threshold: 0.6
+      attribution_agent: attributor_default
+      attribution_priority: P1
+      annotation_trigger: low_confidence
