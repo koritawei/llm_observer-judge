@@ -7,7 +7,10 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol, runtime_checkable
+
+from llmobserverjudge.shared.deployment import resolve_outbox_claim_lease_seconds
 
 
 @runtime_checkable
@@ -26,7 +29,9 @@ class OutboxStore(Protocol):
 
     async def claim_unpublished(self, limit: int = 100) -> list[dict[str, Any]]: ...
 
-    async def mark_published(self, row_id: str) -> None: ...
+    async def mark_published(self, row_id: str) -> bool: ...
+
+    async def release_claim(self, row_id: str) -> None: ...
 
     async def unclaim(self, row_id: str) -> None: ...
 
@@ -38,6 +43,18 @@ class InMemoryOutbox:
     """Memory driver. Production: PostgreSQL pending_eval_jobs."""
 
     _rows: dict[str, dict[str, Any]] = field(default_factory=dict)
+    _claim_lease_s: int = field(default_factory=resolve_outbox_claim_lease_seconds)
+
+    def _claimable(self, row: dict[str, Any]) -> bool:
+        if row.get("published"):
+            return False
+        claimed = row.get("claimed_at")
+        if claimed is None:
+            return True
+        if isinstance(claimed, str):
+            claimed = datetime.fromisoformat(claimed)
+        stale = datetime.now(UTC) - timedelta(seconds=self._claim_lease_s)
+        return claimed < stale
 
     async def insert_trace_closed(
         self,
@@ -52,7 +69,6 @@ class InMemoryOutbox:
         key = f"{tenant_id}:{pid}:{trace_id}"
         existing = self._rows.get(key)
         if existing is not None:
-            # Merge summary tags/span refs; keep same id
             old = dict(existing["trace_summary"])
             old_tags = list(old.get("tags") or [])
             new_tags = list(trace_summary.get("tags") or [])
@@ -77,35 +93,44 @@ class InMemoryOutbox:
             "prompt_version_id": prompt_version_id,
             "published": False,
             "attempt_count": 0,
+            "claimed_at": None,
         }
         return row_id
 
     async def fetch_unpublished(self, limit: int = 100) -> list[dict[str, Any]]:
-        out = [r for r in self._rows.values() if not r["published"]]
+        out = [r for r in self._rows.values() if self._claimable(r)]
         out.sort(key=lambda r: r["id"])
         return [dict(r) for r in out[:limit]]
 
     async def claim_unpublished(self, limit: int = 100) -> list[dict[str, Any]]:
-        out = [r for r in self._rows.values() if not r["published"]]
+        now = datetime.now(UTC)
+        out = [r for r in self._rows.values() if self._claimable(r)]
         out.sort(key=lambda r: r["id"])
         claimed = out[:limit]
         result: list[dict[str, Any]] = []
         for row in claimed:
-            row["published"] = True
+            row["claimed_at"] = now
             result.append(dict(row))
         return result
 
-    async def mark_published(self, row_id: str) -> None:
+    async def mark_published(self, row_id: str) -> bool:
         for row in self._rows.values():
             if row["id"] == row_id:
+                if row["published"]:
+                    return False
                 row["published"] = True
+                row["claimed_at"] = None
+                return True
+        return False
+
+    async def release_claim(self, row_id: str) -> None:
+        for row in self._rows.values():
+            if row["id"] == row_id and not row["published"]:
+                row["claimed_at"] = None
                 return
 
     async def unclaim(self, row_id: str) -> None:
-        for row in self._rows.values():
-            if row["id"] == row_id:
-                row["published"] = False
-                return
+        await self.release_claim(row_id)
 
     async def bump_attempt(self, row_id: str) -> None:
         for row in self._rows.values():

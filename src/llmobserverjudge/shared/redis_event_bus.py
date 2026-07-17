@@ -177,6 +177,7 @@ def create_event_bus_from_env() -> PipelineEventBus:
     import os
 
     from llmobserverjudge.benchmark.redis_signal import create_redis_client
+    from llmobserverjudge.shared.deployment import redis_key_prefix
 
     driver = (os.environ.get("LLMJUDGE_EVENT_BUS") or "").lower().strip()
     url = (os.environ.get("LLMJUDGE_REDIS_URL") or "").strip()
@@ -185,7 +186,12 @@ def create_event_bus_from_env() -> PipelineEventBus:
     if not url:
         return PipelineEventBus()
     try:
-        return RedisPipelineEventBus(create_redis_client(url))
+        prefix = redis_key_prefix()
+        return RedisPipelineEventBus(
+            create_redis_client(url),
+            channel=f"{prefix}pipeline:events",
+            history_key_prefix=f"{prefix}pipeline:hist:",
+        )
     except Exception:
         logger.warning("event_bus_redis_unavailable; using memory", exc_info=True)
         return PipelineEventBus()

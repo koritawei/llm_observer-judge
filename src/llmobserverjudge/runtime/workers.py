@@ -130,7 +130,10 @@ async def run_eval(*, mq: MessageQueue | None = None) -> None:
 
     logger.info("worker_started role=eval")
     try:
-        await _loop("eval", tick, stop, _poll_interval())
+        await asyncio.gather(
+            _loop("eval", tick, stop, _poll_interval()),
+            loader.watch_loop(interval_s=2.0),
+        )
     finally:
         stop_fn = getattr(event_bus, "stop", None)
         if stop_fn is not None:
@@ -144,6 +147,7 @@ async def run_attribution(*, mq: MessageQueue | None = None) -> None:
         mq,
         store=bundle.attributions,
         checkpoint=bundle.checkpoints,
+        idempotency=bundle.idempotency,
         use_env_react_policy=True,
     )
     stop = asyncio.Event()
@@ -158,7 +162,7 @@ async def run_attribution(*, mq: MessageQueue | None = None) -> None:
 async def run_annotation(*, mq: MessageQueue | None = None) -> None:
     mq = mq or create_mq_from_env(consumer_group="annotation")
     bundle = await create_persistence()
-    worker = AnnotationWorker(mq, store=bundle.annotations)
+    worker = AnnotationWorker(mq, store=bundle.annotations, idempotency=bundle.idempotency)
     stop = asyncio.Event()
 
     async def tick() -> int:
@@ -183,6 +187,8 @@ async def run_gateway() -> None:
     from llmobserverjudge.gateway.auth import ApiKeyAuthenticator
     from llmobserverjudge.prompt_admin.api import create_prompt_admin_app
     from llmobserverjudge.shared.project_api import create_project_app
+    from llmobserverjudge.shared.deployment import deployment_metadata
+    from llmobserverjudge.shared.persistence import _try_redis_client
     from llmobserverjudge.shared.redis_rate_limit import create_rate_limiter_from_env
 
     mq = create_mq_from_env(consumer_group="gateway")
@@ -193,6 +199,25 @@ async def run_gateway() -> None:
     if start is not None:
         await start()
     rate_limiter = create_rate_limiter_from_env()
+    dispatch_loader = _dispatch_loader()
+
+    async def db_health_check() -> None:
+        sf = bundle.session_factory
+        if sf is None:
+            return
+        from sqlalchemy import text
+
+        async with sf() as session:
+            await session.execute(text("SELECT 1"))
+
+    async def redis_health_check() -> None:
+        client = _try_redis_client()
+        if client is None:
+            return
+        pong = await client.ping()
+        if not pong:
+            raise RuntimeError("redis ping failed")
+
     signal = await create_batch_signal_from_env()
     benchmark = BenchmarkService(store=bundle.benchmark_reports, signal=signal)
     authenticator = ApiKeyAuthenticator(parse_api_keys())
@@ -207,6 +232,8 @@ async def run_gateway() -> None:
         authenticator=authenticator,
         rate_limiter=rate_limiter,
         project_store=bundle.projects,
+        db_health_check=db_health_check if bundle.session_factory else None,
+        redis_health_check=redis_health_check,
         on_shutdown=on_shutdown,
     )
 
@@ -241,17 +268,30 @@ async def run_gateway() -> None:
     async def stackz() -> dict[str, Any]:
         from llmobserverjudge.contracts.topics import Topic
 
+        depths = {
+            "spans": await mq.depth(Topic.SPANS),
+            "eval_jobs": await mq.depth(Topic.EVAL_JOBS),
+            "attribution_jobs": await mq.depth(Topic.ATTRIBUTION_JOBS),
+            "annotation_jobs": await mq.depth(Topic.ANNOTATION_JOBS),
+        }
+        lags = {}
+        for name, topic in (
+            ("spans", Topic.SPANS),
+            ("eval_jobs", Topic.EVAL_JOBS),
+            ("attribution_jobs", Topic.ATTRIBUTION_JOBS),
+            ("annotation_jobs", Topic.ANNOTATION_JOBS),
+        ):
+            lag_fn = getattr(mq, "consumer_lag", None)
+            if lag_fn is not None:
+                lags[name] = await lag_fn(topic)
         return {
             "status": "ok",
             "role": "gateway",
             "persistence": bundle.driver,
             "mq_driver": os.environ.get("LLMJUDGE_MQ") or "memory",
-            "mq_depths": {
-                "spans": await mq.depth(Topic.SPANS),
-                "eval_jobs": await mq.depth(Topic.EVAL_JOBS),
-                "attribution_jobs": await mq.depth(Topic.ATTRIBUTION_JOBS),
-                "annotation_jobs": await mq.depth(Topic.ANNOTATION_JOBS),
-            },
+            "mq_depths": depths,
+            "mq_consumer_lag": lags,
+            **deployment_metadata(dispatch_version=dispatch_loader.version),
         }
 
     host = os.environ.get("LLMJUDGE_HOST", "0.0.0.0")

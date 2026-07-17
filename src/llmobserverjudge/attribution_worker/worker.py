@@ -38,12 +38,14 @@ class AttributionWorker:
         context_store: InMemoryAttributionContextStore | None = None,
         attributor: ReActAttributor | None = None,
         checkpoint: Any | None = None,
+        idempotency: object | None = None,
         max_concurrent: int = 4,
         use_env_react_policy: bool = False,
     ) -> None:
         self.mq = mq
         self.store = store or InMemoryAttributionStore()
         self.context_store = context_store or InMemoryAttributionContextStore()
+        self.idempotency = idempotency
         ckpt = checkpoint or InMemoryCheckpointStore()
         if attributor is not None:
             self.attributor = attributor
@@ -94,16 +96,22 @@ class AttributionWorker:
 
     async def _process_job(self, raw: dict) -> AttributionResult | None:
         job = AttributionJob.model_validate(raw)
-        if job.idempotency_key in self._seen:
-            return None
+        idem_key = f"attr:{job.idempotency_key}"
         existing = await self.store.get_by_idempotency(job.idempotency_key)
         if existing is not None:
             self._seen.add(job.idempotency_key)
             return existing
+        if self.idempotency is not None and await self.idempotency.exists(idem_key):
+            got = await self.store.get_by_idempotency(job.idempotency_key)
+            if got is not None:
+                self._seen.add(job.idempotency_key)
+                return got
 
         ctx = await self._build_context(job)
         result = await self.attributor.analyze(job, ctx)
         await self.store.save(result, idempotency_key=job.idempotency_key)
+        if self.idempotency is not None:
+            await self.idempotency.mark(idem_key)
         self._seen.add(job.idempotency_key)
         return result
 

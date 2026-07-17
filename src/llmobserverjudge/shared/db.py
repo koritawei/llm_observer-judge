@@ -61,8 +61,11 @@ def make_engine(url: str | None = None, *, echo: bool = False) -> AsyncEngine:
         if ":memory:" in db_url:
             kwargs["poolclass"] = StaticPool
     elif is_postgres_url(db_url):
-        # Production-friendly pool defaults (override via URL query / engine opts later)
         kwargs.setdefault("pool_pre_ping", True)
+        pool_size = int(os.environ.get("LLMJUDGE_DB_POOL_SIZE", "5"))
+        max_overflow = int(os.environ.get("LLMJUDGE_DB_MAX_OVERFLOW", "10"))
+        kwargs["pool_size"] = max(1, pool_size)
+        kwargs["max_overflow"] = max(0, max_overflow)
     return create_async_engine(db_url, **kwargs)
 
 

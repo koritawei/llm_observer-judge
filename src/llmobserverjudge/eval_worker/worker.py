@@ -15,6 +15,10 @@ from llmobserverjudge.dashboard.store import EvalResultRecord, EvalResultStore
 from llmobserverjudge.dispatch.client import DispatchClient
 from llmobserverjudge.eval_worker.graph import run_eval_graph
 from llmobserverjudge.eval_worker.judges import JudgeModelRouter, build_judge_router
+from llmobserverjudge.shared.deployment import (
+    resolve_idempotency_ttl,
+    resolve_processing_lock_ttl,
+)
 from llmobserverjudge.shared.mq import MQ_MSG_ID, MessageQueue
 
 logger = logging.getLogger(__name__)
@@ -56,25 +60,40 @@ class EvalWorker:
     async def _already_done(self, key: str) -> bool:
         if key in self._seen:
             return True
-        if self.idempotency is not None:
-            try_mark = getattr(self.idempotency, "try_mark", None)
-            if try_mark is not None:
-                acquired = await try_mark(f"eval:{key}")
-                if not acquired:
-                    self._seen.add(key)
-                    return True
-                # acquired lock for this job — proceed
-                return False
-            if await self.idempotency.exists(f"eval:{key}"):
-                self._seen.add(key)
-                return True
         get_by = getattr(self.eval_results, "get_by_idempotency", None)
         if get_by is not None:
             existing = await get_by(key)
             if existing is not None:
                 self._seen.add(key)
                 return True
+        if self.idempotency is not None:
+            if await self.idempotency.exists(f"eval:{key}"):
+                self._seen.add(key)
+                return True
         return False
+
+    async def _acquire_processing(self, key: str) -> str:
+        """Return ``done`` | ``proceed`` | ``defer`` for multi-replica eval."""
+        if await self._already_done(key):
+            return "done"
+        if self.idempotency is None:
+            return "proceed"
+        try_mark = getattr(self.idempotency, "try_mark", None)
+        if try_mark is None:
+            return "proceed"
+        proc_key = f"eval:proc:{key}"
+        if await try_mark(proc_key, ttl_seconds=resolve_processing_lock_ttl()):
+            return "proceed"
+        if await self._already_done(key):
+            return "done"
+        return "defer"
+
+    async def _release_processing(self, key: str) -> None:
+        if self.idempotency is None:
+            return
+        clear = getattr(self.idempotency, "clear", None)
+        if clear is not None:
+            await clear(f"eval:proc:{key}")
 
     async def process_once(self, max_batch: int = 10) -> list[GraphState]:
         messages = await self._pull(max_batch)
@@ -82,17 +101,17 @@ class EvalWorker:
         ack_ids: list[str] = []
         for raw in messages:
             msg_id = raw.pop(MQ_MSG_ID, None)
+            job_key: str | None = None
             try:
                 job = EvalJob.model_validate(raw)
-                if await self._already_done(job.idempotency_key):
+                job_key = job.idempotency_key
+                action = await self._acquire_processing(job.idempotency_key)
+                if action == "done":
                     if msg_id:
                         ack_ids.append(str(msg_id))
                     continue
-                self._seen.add(job.idempotency_key)
-                if self.idempotency is not None and not hasattr(
-                    self.idempotency, "try_mark"
-                ):
-                    await self.idempotency.mark(f"eval:{job.idempotency_key}")
+                if action == "defer":
+                    continue
                 if self.event_bus is not None:
                     await self.event_bus.publish(
                         PipelineEvent(
@@ -164,6 +183,13 @@ class EvalWorker:
                             )
                         )
                         _ = save_kw
+                if self.idempotency is not None:
+                    await self.idempotency.mark(
+                        f"eval:{job.idempotency_key}",
+                        ttl_seconds=resolve_idempotency_ttl(),
+                    )
+                await self._release_processing(job.idempotency_key)
+                self._seen.add(job.idempotency_key)
                 if self.event_bus is not None:
                     from llmobserverjudge.eval_worker.execution_graph import (
                         map_score_status_to_ui,
@@ -242,6 +268,8 @@ class EvalWorker:
                     ack_ids.append(str(msg_id))
             except Exception:
                 logger.exception("eval_message_failed")
+                if job_key is not None:
+                    await self._release_processing(job_key)
         if ack_ids:
             await self.mq.ack(Topic.EVAL_JOBS, ack_ids)
         return states

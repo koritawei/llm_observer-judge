@@ -71,13 +71,17 @@ class DispatchPublisher:
                 if cfg.publish_priority_shards:
                     shard = eval_jobs_priority_topic(priority.value)
                     await self.mq.publish(self.COMPONENT, shard, payload)
-                # Already claimed (published=True) in fetch_unpublished.
-                await self.outbox.mark_published(row["id"])
-                count += 1
+                marked = await self.outbox.mark_published(row["id"])
+                if marked:
+                    count += 1
             except Exception:
-                unclaim = getattr(self.outbox, "unclaim", None)
-                if unclaim is not None:
-                    await unclaim(row["id"])
+                release = getattr(self.outbox, "release_claim", None)
+                if release is not None:
+                    await release(row["id"])
+                else:
+                    unclaim = getattr(self.outbox, "unclaim", None)
+                    if unclaim is not None:
+                        await unclaim(row["id"])
                 await self.outbox.bump_attempt(row["id"])
                 logger.exception("dispatch_publish_failed outbox_id=%s", row.get("id"))
         return count

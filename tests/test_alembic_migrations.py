@@ -40,7 +40,7 @@ async def test_alembic_upgrade_downgrade_sqlite(tmp_path: Path) -> None:
     assert "alembic_version" in tables
     async with engine.connect() as conn:
         ver = (await conn.execute(text("select version_num from alembic_version"))).scalar_one()
-    assert ver == "c3d9e2f5a7b1"
+    assert ver == "d4e1f8a2b3c0"
     assert "spans" in tables
     assert "eval_results" in tables
     assert "prompt_experiments" in tables

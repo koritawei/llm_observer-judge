@@ -30,3 +30,6 @@ class InMemoryIdempotencyStore:
             return False
         self._keys.add(key)
         return True
+
+    async def clear(self, key: str) -> None:
+        self._keys.discard(key)

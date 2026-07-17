@@ -140,9 +140,16 @@ def create_mq_from_env(
     if chosen in ("memory", "inmemory", "in_memory"):
         return create_mq("memory")
     if chosen in ("redis", "redis_streams", "streams"):
+        from llmobserverjudge.shared.deployment import (
+            redis_key_prefix,
+            resolve_mq_claim_min_idle_ms,
+        )
+
         kwargs: dict[str, Any] = {
             "consumer_group": group,
             "consumer_name": cname,
+            "prefix": f"{redis_key_prefix()}stream:",
+            "claim_min_idle_ms": resolve_mq_claim_min_idle_ms(),
         }
         if redis is not None:
             kwargs["redis"] = redis

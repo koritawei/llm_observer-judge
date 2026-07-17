@@ -16,6 +16,7 @@ from llmobserverjudge.ingest.idempotency import (
 from llmobserverjudge.ingest.nodes import IngestState, SamplingConfig
 from llmobserverjudge.ingest.outbox import InMemoryOutbox, OutboxStore
 from llmobserverjudge.ingest.pipeline import IngestPipeline
+from llmobserverjudge.shared.deployment import resolve_idempotency_ttl
 from llmobserverjudge.shared.mq import MQ_MSG_ID, MessageQueue
 from llmobserverjudge.shared.storage import InMemorySpanStore, SpanStore
 
@@ -69,14 +70,7 @@ class IngestWorker:
                 str(msg["span_id"]),
                 project_id=str(msg.get("project_id") or "default"),
             )
-            try_mark = getattr(self.idempotency, "try_mark", None)
-            if try_mark is not None:
-                acquired = await try_mark(key)
-                if not acquired:
-                    if msg_id:
-                        ack_ids.append(str(msg_id))
-                    continue
-            elif await self.idempotency.exists(key):
+            if await self.idempotency.exists(key):
                 if msg_id:
                     ack_ids.append(str(msg_id))
                 continue
@@ -91,9 +85,6 @@ class IngestWorker:
                         )
                     )
                 state = await self.pipeline.run(IngestState(span=msg))
-                if try_mark is None:
-                    await self.idempotency.mark(key)
-                handled += 1
                 if self.sampling_stats is not None:
                     await self.sampling_stats.record(
                         sampled=bool(state.sampled), reason=state.sample_reason
@@ -132,6 +123,8 @@ class IngestWorker:
                         state.sample_reason,
                         state.trace_id,
                     )
+                await self.idempotency.mark(key, ttl_seconds=resolve_idempotency_ttl())
+                handled += 1
                 if msg_id:
                     ack_ids.append(str(msg_id))
             except Exception:

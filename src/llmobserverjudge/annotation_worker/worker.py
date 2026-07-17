@@ -28,9 +28,11 @@ class AnnotationWorker:
         self,
         mq: MessageQueue,
         store: AnnotationStore | None = None,
+        idempotency: object | None = None,
     ) -> None:
         self.mq = mq
         self.store = store or InMemoryAnnotationStore()
+        self.idempotency = idempotency
         self._seen: set[str] = set()
 
     async def _pull(self, max_batch: int) -> list[dict]:
@@ -74,6 +76,16 @@ class AnnotationWorker:
         if key in self._seen:
             existing = await self.store.get_by_idempotency(key)
             return existing
+        existing = await self.store.get_by_idempotency(key)
+        if existing is not None:
+            self._seen.add(key)
+            return existing
+        idem_key = f"annot:{key}"
+        if self.idempotency is not None and await self.idempotency.exists(idem_key):
+            got = await self.store.get_by_idempotency(key)
+            if got is not None:
+                self._seen.add(key)
+                return got
         record = HumanAnnotation(
             annotation_id=task.annotation_id,
             trace_id=task.trace_id,
@@ -87,6 +99,8 @@ class AnnotationWorker:
             idempotency_key=key,
         )
         saved = await self.store.upsert_pending(record)
+        if self.idempotency is not None:
+            await self.idempotency.mark(idem_key)
         self._seen.add(key)
         return saved
 

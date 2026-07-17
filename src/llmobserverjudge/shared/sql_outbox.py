@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from llmobserverjudge.shared.db import is_postgres_url, resolve_database_url
+from llmobserverjudge.shared.deployment import resolve_outbox_claim_lease_seconds
 from llmobserverjudge.shared.tables import PendingEvalJobRow
 
 
@@ -16,6 +18,7 @@ class SqlOutboxStore:
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         self._sf = session_factory
         self._postgres = is_postgres_url(resolve_database_url())
+        self._claim_lease_s = resolve_outbox_claim_lease_seconds()
 
     async def insert_trace_closed(
         self,
@@ -64,12 +67,14 @@ class SqlOutboxStore:
                     prompt_version_id=prompt_version_id,
                     published=False,
                     attempt_count=0,
+                    claimed_at=None,
                 )
             )
             await session.commit()
             return row_id
 
     def _row_dict(self, r: PendingEvalJobRow) -> dict[str, Any]:
+        claimed = getattr(r, "claimed_at", None)
         return {
             "id": r.id,
             "tenant_id": r.tenant_id,
@@ -79,30 +84,43 @@ class SqlOutboxStore:
             "prompt_version_id": r.prompt_version_id,
             "published": r.published,
             "attempt_count": r.attempt_count,
+            "claimed_at": claimed.isoformat() if claimed is not None else None,
         }
+
+    def _claimable_filter(self, *, stale_before: datetime):
+        return (
+            PendingEvalJobRow.published.is_(False),
+            or_(
+                PendingEvalJobRow.claimed_at.is_(None),
+                PendingEvalJobRow.claimed_at < stale_before,
+            ),
+        )
 
     async def fetch_unpublished(self, limit: int = 100) -> list[dict[str, Any]]:
         """Peek unpublished rows without claiming."""
+        stale_before = datetime.now(UTC) - timedelta(seconds=self._claim_lease_s)
         async with self._sf() as session:
             q = await session.execute(
                 select(PendingEvalJobRow)
-                .where(PendingEvalJobRow.published.is_(False))
+                .where(*self._claimable_filter(stale_before=stale_before))
                 .order_by(PendingEvalJobRow.id)
                 .limit(limit)
             )
             return [self._row_dict(r) for r in q.scalars().all()]
 
     async def claim_unpublished(self, limit: int = 100) -> list[dict[str, Any]]:
-        """Claim unpublished rows (mark published=True under row lock).
+        """Claim rows with a time-bounded lease (``claimed_at``).
 
-        On MQ publish failure, caller should ``unclaim`` to retry.
-        Postgres uses ``FOR UPDATE SKIP LOCKED`` so multiple Dispatch
-        replicas do not claim the same row.
+        Caller must ``mark_published`` after MQ publish succeeds, or
+        ``release_claim`` on failure. Expired leases are reclaimable by
+        other Dispatch replicas (multi-node / multi-region shared DB).
         """
+        now = datetime.now(UTC)
+        stale_before = now - timedelta(seconds=self._claim_lease_s)
         async with self._sf() as session:
             stmt = (
                 select(PendingEvalJobRow)
-                .where(PendingEvalJobRow.published.is_(False))
+                .where(*self._claimable_filter(stale_before=stale_before))
                 .order_by(PendingEvalJobRow.id)
                 .limit(limit)
             )
@@ -112,28 +130,39 @@ class SqlOutboxStore:
             rows = list(q.scalars().all())
             out: list[dict[str, Any]] = []
             for r in rows:
-                r.published = True
+                r.claimed_at = now
                 out.append(self._row_dict(r))
             await session.commit()
             return out
 
-    async def unclaim(self, row_id: str) -> None:
+    async def release_claim(self, row_id: str) -> None:
         async with self._sf() as session:
             await session.execute(
                 update(PendingEvalJobRow)
-                .where(PendingEvalJobRow.id == row_id)
-                .values(published=False)
+                .where(
+                    PendingEvalJobRow.id == row_id,
+                    PendingEvalJobRow.published.is_(False),
+                )
+                .values(claimed_at=None)
             )
             await session.commit()
 
-    async def mark_published(self, row_id: str) -> None:
+    async def unclaim(self, row_id: str) -> None:
+        await self.release_claim(row_id)
+
+    async def mark_published(self, row_id: str) -> bool:
+        """Atomically mark published; returns False if already published."""
         async with self._sf() as session:
-            await session.execute(
+            result = await session.execute(
                 update(PendingEvalJobRow)
-                .where(PendingEvalJobRow.id == row_id)
-                .values(published=True)
+                .where(
+                    PendingEvalJobRow.id == row_id,
+                    PendingEvalJobRow.published.is_(False),
+                )
+                .values(published=True, claimed_at=None)
             )
             await session.commit()
+            return bool(getattr(result, "rowcount", 0))
 
     async def bump_attempt(self, row_id: str) -> None:
         async with self._sf() as session:

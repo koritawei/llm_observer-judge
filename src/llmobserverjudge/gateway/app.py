@@ -44,6 +44,8 @@ def create_app(
     health_tracker: HealthTracker | None = None,
     project_store: ProjectStore | None = None,
     *,
+    db_health_check: Callable[[], Awaitable[None]] | None = None,
+    redis_health_check: Callable[[], Awaitable[None]] | None = None,
     on_startup: StartupHook | None = None,
     on_shutdown: ShutdownHook | None = None,
 ) -> FastAPI:
@@ -62,6 +64,8 @@ def create_app(
         app.state.health = health
         app.state.telemetry = telemetry
         app.state.projects = projects
+        app.state.db_health_check = db_health_check
+        app.state.redis_health_check = redis_health_check
         app.state.shutting_down = False
         if on_startup is not None:
             await on_startup(app)
@@ -77,6 +81,8 @@ def create_app(
     app.state.health = health
     app.state.telemetry = telemetry
     app.state.projects = projects
+    app.state.db_health_check = db_health_check
+    app.state.redis_health_check = redis_health_check
     app.state.shutting_down = False
 
     def _auth(api_key: str | None):
@@ -94,6 +100,31 @@ def create_app(
         if request.app.state.shutting_down:
             raise HTTPException(503, "shutting down")
         tracker: HealthTracker = request.app.state.health
+        degraded: dict[str, Any] = {}
+        db_check = getattr(request.app.state, "db_health_check", None)
+        if db_check is not None:
+            try:
+                await db_check()
+                tracker.reset("db")
+            except Exception:
+                n = tracker.incr("db")
+                if tracker.is_unhealthy("db"):
+                    raise HTTPException(
+                        503, f"database unavailable ({n} consecutive failures)"
+                    ) from None
+                degraded["db_failures"] = n
+        redis_check = getattr(request.app.state, "redis_health_check", None)
+        if redis_check is not None:
+            try:
+                await redis_check()
+                tracker.reset("redis")
+            except Exception:
+                n = tracker.incr("redis")
+                if tracker.is_unhealthy("redis"):
+                    raise HTTPException(
+                        503, f"redis unavailable ({n} consecutive failures)"
+                    ) from None
+                degraded["redis_failures"] = n
         try:
             await request.app.state.mq.health_check()
             tracker.reset("mq")
@@ -103,8 +134,14 @@ def create_app(
                 raise HTTPException(
                     503, f"mq unavailable ({n} consecutive failures)"
                 ) from None
-            return {"status": "degraded", "mq_failures": n}
-        return {"status": "ready"}
+            degraded["mq_failures"] = n
+        if degraded:
+            from llmobserverjudge.shared.deployment import deployment_metadata
+
+            return {"status": "degraded", **deployment_metadata(), **degraded}
+        from llmobserverjudge.shared.deployment import deployment_metadata
+
+        return {"status": "ready", **deployment_metadata()}
 
     @app.post("/api/v1/ingest", response_model=IngestAccepted)
     async def ingest(

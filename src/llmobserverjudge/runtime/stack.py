@@ -208,10 +208,22 @@ class DevStack:
             if stop is not None:
                 await stop()
 
+        async def db_health_check() -> None:
+            sf = self.persistence.session_factory
+            if sf is None:
+                return
+            from sqlalchemy import text
+
+            async with sf() as session:
+                await session.execute(text("SELECT 1"))
+
         gw = create_app(
             mq=self.mq,
             authenticator=ApiKeyAuthenticator(self.api_keys),
             project_store=self.persistence.projects,
+            db_health_check=db_health_check
+            if self.persistence.session_factory
+            else None,
             on_startup=on_startup,
             on_shutdown=on_shutdown,
         )

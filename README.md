@@ -59,13 +59,28 @@ pytest
 
 ### Git hooks（禁止 Cursor co-author）
 
-clone 后执行一次 `./scripts/install-githooks.sh`，会在**本仓库**设置 `core.hooksPath=.githooks`：
+**本仓库（推荐）** — clone 后执行一次：
+
+```bash
+./scripts/install-githooks.sh
+```
+
+**所有 Git 仓库（本机全局）** — 任意项目均生效：
+
+```bash
+./scripts/install-githooks-global.sh
+# 或：~/.cursor/install-global-githooks.sh
+```
+
+会在**本仓库**或 **`~/.githooks`（全局）** 设置 hooks；若仓库已有本地 `core.hooksPath`，本地优先于全局。
 
 | Hook | 作用 |
 |------|------|
 | `prepare-commit-msg` | 提交前自动删除 `Co-authored-by: Cursor <...>` |
 | `commit-msg` | 若仍有残留则拒绝提交 |
 | `pre-push` | 若待推送 commit 含该 trailer 则拒绝 push |
+
+建议在 Cursor 中关闭注入来源：**Settings → Agent → Attribution → Off**。
 
 ## 配置（`.env`）
 
