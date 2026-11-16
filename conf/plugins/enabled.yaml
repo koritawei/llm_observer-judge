@@ -1,0 +1,31 @@
+version: 1
+enabled:
+  - inline_source
+  - parent_run_cases
+  - default_limits
+  - replay_case_limits
+  - request_builder_passthrough
+  - eval_replay_request
+  - exact_match_judge
+  - shop_phrase_judge
+  - async_submit_judge
+  - eval_replay_execute
+  - reuse_parent_output
+  - output_passthrough
+  - skill_exec
+  - tool_exec
+  - tool_contract
+  - budget_window
+  - lease_pair
+  - rubric_v2
+  - attribution_none
+  - recording_attribution
+  - dispatch_disabled
+  - weighted_mean
+  - always_true
+  - stages_ready
+  - report_metrics_only
+  - local_only
+  - provider_hmac
+  - streaming_sampler
+disabled: []

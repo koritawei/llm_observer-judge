@@ -1,0 +1,6 @@
+version: 1
+aliases:
+  streaming_sampler:
+    class_ref: benchmark.kernel.builtins:StreamingSampler
+  exact_match_judge:
+    class_ref: benchmark.kernel.builtins:ExactMatchJudge

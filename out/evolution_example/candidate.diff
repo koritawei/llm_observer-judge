@@ -1,0 +1,14 @@
+--- a/subject.py
++++ b/subject.py
+@@ -1,9 +1,6 @@
+ def answer(query: str) -> str:
+-    """回复用户。问句被错误清空，精确匹配因此失败。"""
+-    text = _known(query)
+-    if query.endswith("？") or query.endswith("?"):
+-        return ""
+-    return text
++    """回复用户。问句保留已知答案。"""
++    return _known(query)
+ 
+ 
+ def _known(query: str) -> str:

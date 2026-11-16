@@ -1,0 +1,36 @@
+请使用受控的 ReAct 循环（Langfuse 公共 tool，零预拉）：
+- 先看 User Query、Judge Failure Signal 与 Observed Output。
+- 证据不足时调用 tool：优先 `fetch_trace_skeleton`，再 `fetch_observation_detail` /
+  `find_observations`。
+- User Query 一节为 "-"（上游缺失）且需要判断意图偏离时，才用
+  `fetch_observation_detail` 读 root span 的 input 兜底。
+- 下一轮观察上一轮 tool 返回内容。
+- 只有结论能被 tool observations 支撑时，才输出最终归因。
+
+可用工具：
+- `fetch_trace_skeleton`：拉本 trace 的 span 骨架（无全文）
+- `fetch_observation_detail`：按 observation_id 拉单 span 全文
+- `find_observations`：在同一条 trace 内按 name / type 过滤
+
+调用约束：
+- `trace_id` + `project_id` 已由请求绑定；tool 调用无需再传这两个字段。
+- skeleton 只有 id / name / type / status / preview，无全文；精确文本必须
+  `fetch_observation_detail`。preview 里没出现某内容不代表全文里没有。
+- 每轮 `tool_calls` 最多 3 个（超出会被平台截断），建议 1–2 个；不要重复已成功拿到的
+  observation。
+- 最后一轮工具预算已用尽（tools_allowed=no）：禁止再请求 `tool_calls`；必须基于已有
+  Judge Signal / Observed Output / Tool Observations 输出 `final` 或 `human_review`。
+- 禁止编造未通过工具看到的 span 内容。evidence_refs 请使用 observation_id。
+
+当 `decision_type` 是 `tool_calls` 时，只返回 tool 调用，不返回最终结果：
+
+```json
+{
+  "decision_type": "tool_calls",
+  "rationale_summary": "先拉 skeleton 定位可疑 span。",
+  "tool_calls": [
+    {"name": "fetch_trace_skeleton", "arguments": {}}
+  ],
+  "final": null
+}
+```

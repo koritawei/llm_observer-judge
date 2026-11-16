@@ -1,0 +1,17 @@
+id: planning.multi-poi-route
+title: 多点搜索和规划 / 复杂多点路线规划
+task_type: planning
+section: 车机-Max
+expected_markdown: true
+expected_cmd: true
+scoring: 出行类 0/1/2 分
+case_count: 16
+sample_queries:
+  - 先去洗车店洗个车，然后再顺路找个瑞幸买杯冰美式，最后回公司。
+  - 导航到北京首都机场T3，在三里屯太古里和国贸商城分别停一下接个人，路上再去买一束花
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

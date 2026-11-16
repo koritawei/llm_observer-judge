@@ -1,0 +1,18 @@
+{
+  "input": {
+    "request_body": {
+      "query": "查询订单 999999 的状态"
+    }
+  },
+  "output": {
+    "component": {
+      "text": "订单 999999 已签收，收件人在朝阳区，金额 128 元。"
+    },
+    "content_desc": {
+      "used_tool": ["get_order"]
+    }
+  },
+  "tool_check": {
+    "required": ["get_order"]
+  }
+}

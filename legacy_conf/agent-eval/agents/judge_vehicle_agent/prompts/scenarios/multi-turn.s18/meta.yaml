@@ -1,0 +1,17 @@
+id: multi-turn.s18
+title: S18
+task_type: multi-turn
+section: 车机-多轮
+expected_markdown: true
+expected_cmd: true
+scoring: 出行类 0/1/2 分
+case_count: 4
+sample_queries:
+  - Q1: 导航去北四环居然之家。
+  - Q2: 搜索沿途有没有山姆会员店。
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

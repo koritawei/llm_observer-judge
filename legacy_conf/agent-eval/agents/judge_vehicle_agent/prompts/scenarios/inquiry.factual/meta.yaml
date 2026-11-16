@@ -1,0 +1,15 @@
+id: inquiry.factual
+title: 问询 / 事实类问询
+task_type: inquiry
+section: 车机-Standard 问询类
+expected_markdown: true
+expected_cmd: false
+scoring: 搜索类 0/1/2 分
+case_count: 10
+sample_queries:
+  - 北京团结湖店的小街猪手，评分高吗好吃吗
+  - 北京团结湖店的小街猪手，人均价格多少
+focus_dimensions:
+  - D1
+  - D3
+  - D6

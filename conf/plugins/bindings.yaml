@@ -1,0 +1,204 @@
+version: 1
+bindings:
+  normalizer:
+    inline_source:
+      enabled: true
+      mode: local
+      alias: inline_source
+      artifact_hash: auto
+      fallback_local: false
+  source:
+    inline_source:
+      enabled: true
+      mode: local
+      alias: inline_source
+      artifact_hash: auto
+      fallback_local: false
+    parent_run_cases:
+      enabled: true
+      mode: local
+      alias: parent_run_cases
+      artifact_hash: auto
+      fallback_local: false
+  admission_policy:
+    default_limits:
+      enabled: true
+      mode: local
+      alias: default_limits
+      artifact_hash: auto
+      fallback_local: false
+    replay_case_limits:
+      enabled: true
+      mode: local
+      alias: replay_case_limits
+      artifact_hash: auto
+      fallback_local: false
+  request_builder:
+    request_builder_passthrough:
+      enabled: true
+      mode: local
+      alias: request_builder_passthrough
+      artifact_hash: auto
+      fallback_local: false
+    eval_replay_request:
+      enabled: true
+      mode: local
+      alias: eval_replay_request
+      artifact_hash: auto
+      fallback_local: false
+  execution:
+    exact_match_judge:
+      enabled: true
+      mode: local
+      alias: exact_match_judge
+      artifact_hash: auto
+      fallback_local: false
+    shop_phrase_judge:
+      enabled: true
+      mode: local
+      alias: shop_phrase_judge
+      artifact_hash: auto
+      fallback_local: false
+    async_submit_judge:
+      enabled: true
+      mode: local
+      alias: async_submit_judge
+      artifact_hash: auto
+      fallback_local: false
+    eval_replay_execute:
+      enabled: true
+      mode: local
+      alias: eval_replay_execute
+      artifact_hash: auto
+      fallback_local: false
+    reuse_parent_output:
+      enabled: true
+      mode: local
+      alias: reuse_parent_output
+      artifact_hash: auto
+      fallback_local: false
+    output_passthrough:
+      enabled: true
+      mode: local
+      alias: output_passthrough
+      artifact_hash: auto
+      fallback_local: false
+    skill_exec:
+      enabled: true
+      mode: local
+      alias: skill_exec
+      artifact_hash: auto
+      fallback_local: false
+    tool_exec:
+      enabled: true
+      mode: local
+      alias: tool_exec
+      artifact_hash: auto
+      fallback_local: false
+    tool_contract:
+      enabled: true
+      mode: local
+      alias: tool_contract
+      artifact_hash: auto
+      fallback_local: false
+  retry_policy:
+    budget_window:
+      enabled: true
+      mode: local
+      alias: budget_window
+      artifact_hash: auto
+      fallback_local: false
+  capacity_policy:
+    lease_pair:
+      enabled: true
+      mode: local
+      alias: lease_pair
+      artifact_hash: auto
+      fallback_local: false
+  trigger_policy:
+    rubric_v2:
+      enabled: true
+      mode: local
+      alias: rubric_v2
+      artifact_hash: auto
+      fallback_local: false
+  attribution:
+    attribution_none:
+      enabled: true
+      mode: local
+      alias: attribution_none
+      artifact_hash: auto
+      fallback_local: false
+    recording_attribution:
+      enabled: true
+      mode: local
+      alias: recording_attribution
+      artifact_hash: auto
+      fallback_local: false
+  dispatch_policy:
+    dispatch_disabled:
+      enabled: true
+      mode: local
+      alias: dispatch_disabled
+      artifact_hash: auto
+      fallback_local: false
+      config:
+        blocks_completion: false
+  fusion:
+    weighted_mean:
+      enabled: true
+      mode: local
+      alias: weighted_mean
+      artifact_hash: auto
+      fallback_local: false
+  aggregation:
+    weighted_mean:
+      enabled: true
+      mode: local
+      alias: weighted_mean
+      artifact_hash: auto
+      fallback_local: false
+  completion_extra:
+    always_true:
+      enabled: true
+      mode: local
+      alias: always_true
+      artifact_hash: auto
+      fallback_local: false
+    stages_ready:
+      enabled: true
+      mode: local
+      alias: stages_ready
+      artifact_hash: auto
+      fallback_local: false
+  report:
+    report_metrics_only:
+      enabled: true
+      mode: local
+      alias: report_metrics_only
+      artifact_hash: auto
+      fallback_local: false
+  callback_authenticator:
+    local_only:
+      enabled: true
+      mode: local
+      alias: local_only
+      artifact_hash: auto
+      fallback_local: false
+    provider_hmac:
+      enabled: true
+      mode: local
+      alias: provider_hmac
+      artifact_hash: auto
+      fallback_local: false
+      config:
+        secret_ref: callback
+  stream_filter:
+    streaming_sampler:
+      enabled: true
+      mode: local
+      alias: streaming_sampler
+      artifact_hash: auto
+      fallback_local: false
+      config:
+        sample_percent: 100

@@ -1,0 +1,37 @@
+version: 1
+sections:
+  agent_registry:
+    agents:
+      - agent_name: example
+        project_id: local
+        owner: local
+        team: eval
+        description: example benchmark
+  owner_mapping:
+    owners: []
+  service_switches:
+    switches: {}
+  eval_plugins:
+    plugins: []
+  object_store:
+    report_upload_to_oss: false
+    bucket: local
+    upload_endpoint: http://127.0.0.1:9
+  streaming:
+    enabled: false
+    topics: []
+  customization:
+    enabled: false
+  report_providers:
+    providers: []
+  export_jobs:
+    enabled: false
+    jobs: []
+  dispatch:
+    profiles: {}
+  pages:
+    pages: []
+  trace_report:
+    enabled: false
+  external_daily:
+    enabled: false

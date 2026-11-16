@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "trace_id": "tr-no-tool",
+    "project_id": "proj-example",
+    "evaluator_request": {
+      "trace_id": "tr-no-tool",
+      "project_id": "proj-example",
+      "input": {
+        "request_body": {
+          "query": "帮我查订单 10086"
+        }
+      },
+      "output": "订单 10086 已完成。"
+    },
+    "evaluator_result": {
+      "score": 2.0,
+      "reason": "无法确认是否调用了工具。"
+    }
+  },
+  "expected": {
+    "needs_human_review": true,
+    "root_cause": "EXPECTED_LEAK_no_tool_evidence"
+  }
+}

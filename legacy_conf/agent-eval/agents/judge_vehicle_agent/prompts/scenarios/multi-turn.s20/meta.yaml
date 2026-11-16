@@ -1,0 +1,17 @@
+id: multi-turn.s20
+title: S20
+task_type: multi-turn
+section: 车机-多轮
+expected_markdown: true
+expected_cmd: true
+scoring: 出行类 0/1/2 分
+case_count: 4
+sample_queries:
+  - Q1: 导航去西单大悦城。
+  - Q2: 搜索终点附近有没有排队不严重的火锅。
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

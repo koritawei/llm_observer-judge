@@ -1,0 +1,18 @@
+id: search.single-poi-compound
+title: 搜索 / 单点搜索AA+BB
+task_type: search
+section: 车机-Standard 搜索类
+expected_markdown: true
+expected_cmd: 条件（根据用户意图判断）
+expected_dto: 条件（有有效候选时必须，无有效候选时允许为空）
+scoring: 搜索类 0/1/2 分
+case_count: 3
+sample_queries:
+  - 搜索附近好停车和能洗车的商场
+  - 给我找个有充电站还有麦当劳的商场
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

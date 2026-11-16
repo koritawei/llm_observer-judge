@@ -1,76 +1,51 @@
 [build-system]
-requires = ["hatchling>=1.25"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "llmobserverjudge"
-version = "0.1.0"
-description = "LLMJudge — LLM observability and LLM-as-a-Judge platform (STEP-02 scaffold)"
-readme = "README.md"
-requires-python = ">=3.12"
-license = { text = "Proprietary" }
-authors = [{ name = "LLMJudge Team" }]
+name = "benchmark"
+version = "1.23.0"
+requires-python = ">=3.10"
 dependencies = [
-  "pydantic>=2.7",
-  "fastapi>=0.115",
-  "uvicorn[standard]>=0.30",
+  "redis>=5.0",
+  "psycopg[binary]>=3.1",
   "httpx>=0.27",
-  "pyyaml>=6.0",
-  "sqlalchemy[asyncio]>=2.0",
+  "PyYAML>=6",
+  "bullmq>=2.25,<3",
+  "fastapi>=0.115",
+  "uvicorn>=0.32",
+  "langgraph>=0.2,<1.1",
+  "tortoise-orm>=0.21",
+  "aiokafka>=0.11,<1",
   "aiosqlite>=0.20",
-  "python-dotenv>=1.0",
-  "langgraph>=0.4",
-  "opentelemetry-api>=1.27",
-  "opentelemetry-sdk>=1.27",
-  "limits>=3.13",
+  "pydantic>=2",
+  "pydantic-settings>=2",
+  "json-repair>=0.30",
+  "aiolimiter>=1.1",
+  "cachetools>=5",
+  "apscheduler>=3.10",
+  "openpyxl>=3.1",
+  "langfuse>=2",
+  "anthropic>=0.40",
+  "langchain-anthropic>=0.2",
 ]
 
 [project.optional-dependencies]
-dev = [
-  "pytest>=8.2",
-  "pytest-asyncio>=0.23",
-  "ruff>=0.5",
-  "jsonschema>=4.22",
-  "alembic>=1.13",
-  "redis>=5.0",
-  "fakeredis[lua]>=2.23",
-]
-postgres = [
-  "asyncpg>=0.29",
-  "alembic>=1.13",
-]
-redis = [
-  "redis>=5.0",
-]
-langfuse = [
-  "langfuse>=2.0",
-]
+dev = ["pytest>=8", "pytest-asyncio>=0.24"]
 
 [project.scripts]
-llmj-gateway = "llmobserverjudge.gateway.app:main"
-llmj-ingest = "llmobserverjudge.ingest.worker:main"
-llmj-dispatch = "llmobserverjudge.dispatch.publisher:main"
-llmj-eval = "llmobserverjudge.eval_worker.worker:main"
-llmj-attribution = "llmobserverjudge.attribution_worker.worker:main"
-llmj-annotation = "llmobserverjudge.annotation_worker.worker:main"
-llmj-annotation-api = "llmobserverjudge.annotation_worker.api:main"
-llmj-benchmark = "llmobserverjudge.benchmark.service:main"
-llmj-benchmark-api = "llmobserverjudge.benchmark.api:main"
-llmj-db = "llmobserverjudge.shared.migrate:main"
-llmj-stack = "llmobserverjudge.runtime.stack:main"
-llmj-worker = "llmobserverjudge.runtime.workers:main"
+benchmark = "benchmark.__main__:main"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/llmobserverjudge"]
+[tool.setuptools.packages.find]
+include = ["benchmark*", "business*"]
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = ["tests"]
-pythonpath = ["src"]
-
-[tool.ruff]
-line-length = 100
-target-version = "py312"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "--import-mode=importlib"
+markers = [
+  "integration: Redis and PostgreSQL started from docker compose",
+  "smoke: deployment smoke checks",
+]

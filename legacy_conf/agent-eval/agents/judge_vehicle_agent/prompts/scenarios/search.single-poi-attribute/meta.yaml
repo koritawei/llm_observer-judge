@@ -1,0 +1,18 @@
+id: search.single-poi-attribute
+title: 搜索 / 单点搜索AA有BB
+task_type: search
+section: 车机-Standard 搜索类
+expected_markdown: true
+expected_cmd: 条件（根据用户意图判断）
+expected_dto: 条件（有有效候选时必须，无有效候选时允许为空）
+scoring: 搜索类 0/1/2 分
+case_count: 5
+sample_queries:
+  - 找个有充电站的停车场
+  - 帮我找一家有儿童游乐区的商场
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

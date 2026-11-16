@@ -1,0 +1,375 @@
+version: 1
+profiles:
+  benchmark_sync:
+    remote_execution: forbidden
+    credential_requirements: [none]
+    completion_model: count
+    slot_kind: sync
+    queue: benchmark-cases
+    triage_mode: fused
+    plugins:
+      source: inline_source
+      normalizer: inline_source
+      admission_policy: default_limits
+      retry_policy: budget_window
+      capacity_policy: lease_pair
+      trigger_policy: rubric_v2
+      attribution: attribution_none
+      dispatch_policy: dispatch_disabled
+      fusion: weighted_mean
+      aggregation: weighted_mean
+      completion_extra: always_true
+      report: report_metrics_only
+      callback_authenticator: local_only
+    execution_plan:
+      - phase_id: judge
+        role: score
+        counts_toward_progress: true
+        side_effect_class: read_only
+        request_builder: request_builder_passthrough
+        execution: exact_match_judge
+    rubric:
+      score_min: 0
+      score_max: 1
+      attribution_threshold: 0
+      criteria:
+        - id: fused
+          weight: 1
+          counts_toward_progress: true
+  benchmark_async:
+    remote_execution: forbidden
+    credential_requirements: [none]
+    completion_model: external
+    slot_kind: judge
+    queue: benchmark-cases
+    triage_mode: fused
+    plugins:
+      source: inline_source
+      normalizer: inline_source
+      admission_policy: default_limits
+      retry_policy: budget_window
+      capacity_policy: lease_pair
+      trigger_policy: rubric_v2
+      attribution: attribution_none
+      dispatch_policy: dispatch_disabled
+      fusion: weighted_mean
+      aggregation: weighted_mean
+      completion_extra: always_true
+      report: report_metrics_only
+      callback_authenticator: provider_hmac
+    execution_plan:
+      - phase_id: judge
+        role: score
+        counts_toward_progress: true
+        side_effect_class: external_write
+        request_builder: request_builder_passthrough
+        execution: async_submit_judge
+    rubric:
+      score_min: 0
+      score_max: 1
+      attribution_threshold: 0
+      criteria:
+        - id: fused
+          weight: 1
+          counts_toward_progress: true
+  benchmark_attributed:
+    remote_execution: forbidden
+    credential_requirements: [none]
+    completion_model: count
+    slot_kind: sync
+    queue: benchmark-cases
+    triage_mode: fused
+    plugins:
+      source: inline_source
+      normalizer: inline_source
+      admission_policy: default_limits
+      retry_policy: budget_window
+      capacity_policy: lease_pair
+      trigger_policy: rubric_v2
+      attribution: recording_attribution
+      dispatch_policy: dispatch_disabled
+      fusion: weighted_mean
+      aggregation: weighted_mean
+      completion_extra: always_true
+      report: report_metrics_only
+      callback_authenticator: local_only
+    execution_plan:
+      - phase_id: judge
+        role: score
+        counts_toward_progress: true
+        side_effect_class: read_only
+        request_builder: request_builder_passthrough
+        execution: exact_match_judge
+    rubric:
+      score_min: 0
+      score_max: 1
+      attribution_threshold: 0.5
+      criteria:
+        - id: fused
+          weight: 1
+          counts_toward_progress: true
+  streaming_message:
+    remote_execution: forbidden
+    credential_requirements: [none]
+    completion_model: count
+    slot_kind: sync
+    queue: benchmark-cases
+    triage_mode: fused
+    plugins:
+      source: inline_source
+      normalizer: inline_source
+      admission_policy: default_limits
+      retry_policy: budget_window
+      capacity_policy: lease_pair
+      trigger_policy: rubric_v2
+      attribution: attribution_none
+      dispatch_policy: dispatch_disabled
+      fusion: weighted_mean
+      aggregation: weighted_mean
+      completion_extra: always_true
+      report: report_metrics_only
+      callback_authenticator: local_only
+      stream_filter: streaming_sampler
+    execution_plan:
+      - phase_id: judge
+        role: score
+        counts_toward_progress: true
+        side_effect_class: read_only
+        request_builder: request_builder_passthrough
+        execution: exact_match_judge
+    rubric:
+      score_min: 0
+      score_max: 1
+      attribution_threshold: 0
+      criteria:
+        - id: fused
+          weight: 1
+          counts_toward_progress: true
+  skill_eval:
+    remote_execution: forbidden
+    credential_requirements: [none]
+    completion_model: count
+    slot_kind: sync
+    queue: benchmark-cases
+    triage_mode: fused
+    plugins:
+      source: inline_source
+      normalizer: inline_source
+      admission_policy: default_limits
+      retry_policy: budget_window
+      capacity_policy: lease_pair
+      trigger_policy: rubric_v2
+      attribution: attribution_none
+      dispatch_policy: dispatch_disabled
+      fusion: weighted_mean
+      aggregation: weighted_mean
+      completion_extra: always_true
+      report: report_metrics_only
+      callback_authenticator: local_only
+    execution_plan:
+      - phase_id: judge
+        role: score
+        counts_toward_progress: true
+        side_effect_class: read_only
+        request_builder: request_builder_passthrough
+        execution: skill_exec
+    rubric:
+      score_min: 0
+      score_max: 1
+      attribution_threshold: 0
+      criteria:
+        - id: skill
+          weight: 1
+          counts_toward_progress: true
+  tool_call_eval:
+    remote_execution: forbidden
+    credential_requirements: [none]
+    completion_model: count
+    slot_kind: sync
+    queue: benchmark-cases
+    triage_mode: fused
+    plugins:
+      source: inline_source
+      normalizer: inline_source
+      admission_policy: default_limits
+      retry_policy: budget_window
+      capacity_policy: lease_pair
+      trigger_policy: rubric_v2
+      attribution: attribution_none
+      dispatch_policy: dispatch_disabled
+      fusion: weighted_mean
+      aggregation: weighted_mean
+      completion_extra: always_true
+      report: report_metrics_only
+      callback_authenticator: local_only
+    execution_plan:
+      - phase_id: judge
+        role: score
+        counts_toward_progress: true
+        side_effect_class: read_only
+        request_builder: request_builder_passthrough
+        execution: tool_exec
+    rubric:
+      score_min: 0
+      score_max: 1
+      attribution_threshold: 0
+      criteria:
+        - id: tool_call
+          weight: 1
+          counts_toward_progress: true
+  tool_contract_eval:
+    remote_execution: forbidden
+    credential_requirements: [none]
+    completion_model: count
+    slot_kind: sync
+    queue: benchmark-cases
+    triage_mode: fused
+    plugins:
+      source: inline_source
+      normalizer: inline_source
+      admission_policy: default_limits
+      retry_policy: budget_window
+      capacity_policy: lease_pair
+      trigger_policy: rubric_v2
+      attribution: attribution_none
+      dispatch_policy: dispatch_disabled
+      fusion: weighted_mean
+      aggregation: weighted_mean
+      completion_extra: always_true
+      report: report_metrics_only
+      callback_authenticator: local_only
+    execution_plan:
+      - phase_id: judge
+        role: score
+        counts_toward_progress: true
+        side_effect_class: read_only
+        request_builder: request_builder_passthrough
+        execution: tool_contract
+    rubric:
+      score_min: 0
+      score_max: 1
+      attribution_threshold: 0
+      criteria:
+        - id: tool_contract
+          weight: 1
+          counts_toward_progress: true
+  playground_replay:
+    remote_execution: forbidden
+    credential_requirements: [user_bearer_checkout]
+    completion_model: count
+    slot_kind: sync
+    queue: benchmark-cases
+    triage_mode: fused
+    plugins:
+      source: parent_run_cases
+      normalizer: inline_source
+      admission_policy: replay_case_limits
+      retry_policy: budget_window
+      capacity_policy: lease_pair
+      trigger_policy: rubric_v2
+      attribution: attribution_none
+      dispatch_policy: dispatch_disabled
+      fusion: weighted_mean
+      aggregation: weighted_mean
+      completion_extra: always_true
+      report: report_metrics_only
+      callback_authenticator: local_only
+    execution_plan:
+      - phase_id: rerun
+        role: produce_output
+        counts_toward_progress: false
+        side_effect_class: external_write
+        request_builder: eval_replay_request
+        execution: eval_replay_execute
+      - phase_id: judge
+        role: score
+        counts_toward_progress: true
+        side_effect_class: read_only
+        request_builder: request_builder_passthrough
+        execution: exact_match_judge
+    rubric:
+      score_min: 0
+      score_max: 1
+      attribution_threshold: 0
+      criteria:
+        - id: fused
+          weight: 1
+          counts_toward_progress: true
+  playground_rejudge:
+    remote_execution: forbidden
+    credential_requirements: [none]
+    completion_model: count
+    slot_kind: sync
+    queue: benchmark-cases
+    triage_mode: fused
+    plugins:
+      source: parent_run_cases
+      normalizer: inline_source
+      admission_policy: replay_case_limits
+      retry_policy: budget_window
+      capacity_policy: lease_pair
+      trigger_policy: rubric_v2
+      attribution: attribution_none
+      dispatch_policy: dispatch_disabled
+      fusion: weighted_mean
+      aggregation: weighted_mean
+      completion_extra: always_true
+      report: report_metrics_only
+      callback_authenticator: local_only
+    execution_plan:
+      - phase_id: reuse
+        role: produce_output
+        counts_toward_progress: false
+        side_effect_class: read_only
+        request_builder: request_builder_passthrough
+        execution: reuse_parent_output
+      - phase_id: judge
+        role: score
+        counts_toward_progress: true
+        side_effect_class: read_only
+        request_builder: request_builder_passthrough
+        execution: exact_match_judge
+    rubric:
+      score_min: 0
+      score_max: 1
+      attribution_threshold: 0
+      criteria:
+        - id: fused
+          weight: 1
+          counts_toward_progress: true
+  shop_phrase:
+    remote_execution: forbidden
+    credential_requirements: [none]
+    completion_model: count
+    slot_kind: sync
+    queue: benchmark-cases
+    triage_mode: fused
+    plugins:
+      source: inline_source
+      normalizer: inline_source
+      admission_policy: default_limits
+      retry_policy: budget_window
+      capacity_policy: lease_pair
+      trigger_policy: rubric_v2
+      attribution: attribution_none
+      dispatch_policy: dispatch_disabled
+      fusion: weighted_mean
+      aggregation: weighted_mean
+      completion_extra: always_true
+      report: report_metrics_only
+      callback_authenticator: local_only
+    execution_plan:
+      - phase_id: judge
+        role: score
+        counts_toward_progress: true
+        side_effect_class: read_only
+        request_builder: request_builder_passthrough
+        execution: shop_phrase_judge
+    rubric:
+      score_min: 0
+      score_max: 1
+      attribution_threshold: 0
+      criteria:
+        - id: fused
+          weight: 1
+          counts_toward_progress: true

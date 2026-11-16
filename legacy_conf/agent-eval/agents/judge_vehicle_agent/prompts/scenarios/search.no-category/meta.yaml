@@ -1,0 +1,18 @@
+id: search.no-category
+title: 搜索 / 无明确类别搜索
+task_type: search
+section: 车机-Standard 搜索类
+expected_markdown: true
+expected_cmd: 条件（根据用户意图判断）
+expected_dto: 条件（有有效候选时必须，无有效候选时允许为空）
+scoring: 搜索类 0/1/2 分
+case_count: 5
+sample_queries:
+  - 附近都有哪些好吃的
+  - 周边都有啥好玩的
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

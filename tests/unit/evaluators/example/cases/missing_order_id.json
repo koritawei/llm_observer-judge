@@ -1,0 +1,18 @@
+{
+  "input": {
+    "request_body": {
+      "query": "帮我查一下订单状态"
+    }
+  },
+  "output": {
+    "component": {
+      "text": "您的订单已发货，预计明天送达。"
+    },
+    "content_desc": {
+      "used_tool": ["get_order"]
+    }
+  },
+  "tool_check": {
+    "must_be_empty": true
+  }
+}

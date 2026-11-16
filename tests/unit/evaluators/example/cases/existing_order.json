@@ -1,0 +1,18 @@
+{
+  "input": {
+    "request_body": {
+      "query": "查询订单 202410220001 的状态"
+    }
+  },
+  "output": {
+    "component": {
+      "text": "订单 202410220001：状态已支付，金额 88.00 元。"
+    },
+    "content_desc": {
+      "used_tool": ["get_order"]
+    }
+  },
+  "tool_check": {
+    "required": ["get_order"]
+  }
+}

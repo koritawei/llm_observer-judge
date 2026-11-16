@@ -1,0 +1,12 @@
+## 待评数据
+
+- `case_id`：{{case_id}}
+- `query`：{{query}}
+- `ctx`：{{ctx}}
+- `result`：
+{{result}}
+
+请严格按照系统提示词中的「打分三步法」完成判定，并在内心过一遍「打分前自检」六条。
+最终只输出单个 JSON 对象（含 case_id / query / score / dimension / reason /
+controllable / dimensions；dimensions 必须覆盖系统提示词规定的六个固定指标）：
+不要输出自检过程、分析文字或 markdown 代码块，直接从 `{` 开始到 `}` 结束。

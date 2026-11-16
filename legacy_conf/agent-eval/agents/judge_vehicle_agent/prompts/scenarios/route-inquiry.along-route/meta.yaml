@@ -1,0 +1,17 @@
+id: route-inquiry.along-route
+title: 沿途问 / 沿途问单&多条件
+task_type: route-inquiry
+section: 车机-Standard 出行类
+expected_markdown: true
+expected_cmd: 条件（由 D4 按 env 与 query 判断）
+scoring: 出行类 0/1/2 分
+case_count: 5
+sample_queries:
+  - 下个服务区都有什么品牌的充电站
+  - 距离目的地还有多少个红绿灯
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

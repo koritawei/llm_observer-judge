@@ -1,0 +1,43 @@
+{
+  "_comment": "Real Langfuse Numeric evaluator payload captured 2026-07-09 14:37 from daily; vehicle-agent.score=0 归因 case. Golden fixture for schema/protocol tests — DO NOT hand-edit without re-validating against live Langfuse. Top-level agent_name/project_id matches the real Langfuse envelope (NOT extra.{}).",
+  "agent_name": "vehicle-agent",
+  "project_id": "cmpwlnaot04it5ycqvm1lqnc4",
+  "metadata": {
+    "trace_id": "1f6f566b7dea475db21b871ffce7f40a",
+    "request_id": "1f6f566b7dea475db21b871ffce7f40a",
+    "session_id": "eval-session-max-9-3c272a0fe3c4",
+    "user_id": "lehegeancf88df6897755ebb513fbe",
+    "workflow_name": "vehicle-agent.stream.chat.max",
+    "graph_key": "chat.max",
+    "env_type": "testing",
+    "business": "chat",
+    "tier": "max"
+  },
+  "input": {
+    "request_body": {
+      "query": "想喝咖啡加个班，旁边最好能洗车和给车充电，帮我一个附近合适的地方",
+      "querySrc": "telematics",
+      "session_id": "eval-session-max-9-3c272a0fe3c4",
+      "task_id": "eval-max-9-3c272a0fe3c4",
+      "scene_id": "1168754472046821411",
+      "dialog_type": "audio",
+      "agent_mode": "plan_execute"
+    }
+  },
+  "output": {
+    "task_id": "1f6f566b7dea475db21b871ffce7f40a",
+    "code": 0,
+    "is_done": true,
+    "dialog_type": "audio",
+    "source": "ai",
+    "content_desc": { "category": "ai_native", "subcategory": "", "used_tool": ["skill_load"] },
+    "react_loop_count": 1,
+    "tool_calls": [
+      {
+        "name": "skill_load",
+        "params": { "name": "search_location" },
+        "output": "[truncated — full skill definition for search_location]"
+      }
+    ]
+  }
+}

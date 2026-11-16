@@ -1,0 +1,17 @@
+id: multi-turn.s10
+title: S10
+task_type: multi-turn
+section: 车机-多轮
+expected_markdown: true
+expected_cmd: false
+scoring: 出行类 0/1/2 分
+case_count: 3
+sample_queries:
+  - Q1: 给我找个带充电站的商场
+  - Q2: 得是理想超充
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

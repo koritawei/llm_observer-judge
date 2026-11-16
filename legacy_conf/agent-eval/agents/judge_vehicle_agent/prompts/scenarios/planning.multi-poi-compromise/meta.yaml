@@ -1,0 +1,17 @@
+id: planning.multi-poi-compromise
+title: 多点搜索和规划 / 复杂多点折中搜索
+task_type: planning
+section: 车机-Max
+expected_markdown: true
+expected_cmd: false
+scoring: 搜索类 0/1/2 分
+case_count: 10
+sample_queries:
+  - 找个距离我当前位置和北京大学距离差不多的适合谈事情安静的咖啡厅
+  - 找个我当前位置和北京朝阳合生汇距离差不多的法餐厅
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

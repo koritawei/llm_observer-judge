@@ -1,0 +1,17 @@
+id: planning.multi-poi-charging
+title: 多点搜索和规划 / 复杂多点充电规划
+task_type: planning
+section: 车机-Max
+expected_markdown: true
+expected_cmd: true
+scoring: 出行类 0/1/2 分
+case_count: 11
+sample_queries:
+  - 去长白山滑雪，每隔2小时提醒我进服务区充电休息。
+  - 回济南，沿途充电都要在服务区里的理想充电站。
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

@@ -1,0 +1,62 @@
+discovery:
+  scan_namespaces:
+  - business
+  - benchmark
+observability:
+  app_name: benchmark
+  log_level: INFO
+models:
+  judge_example:
+    provider: openai
+    model_name: deepseek-chat
+    base_url: https://api.deepseek.com/v1
+    api_key_env: AGENT_EVAL_MODEL_API_KEY
+    temperature: 0.0
+    max_tokens: 8192
+    timeout: 120
+  attribution_example:
+    provider: openai
+    model_name: deepseek-chat
+    base_url: https://api.deepseek.com/v1
+    api_key_env: AGENT_EVAL_MODEL_API_KEY
+    temperature: 0.0
+    max_tokens: 8192
+    timeout: 300
+prompts:
+  template_dir:
+  - conf/agents/judge_example/prompts
+  - conf/agents/attribution_example/prompts
+agents:
+  judge_example:
+    type: judge_example
+    default_model: judge_example
+    prompt: evaluator
+    sub_score_axes:
+    - 准确度
+    - 相关性
+    - 完整性
+    sub_score_scale:
+    - 0.0
+    - 10.0
+    dimension_weights:
+      准确度: 0.4
+      相关性: 0.3
+      完整性: 0.3
+    attribution_threshold: 3.0
+  attribution_example:
+    type: attribution_example
+    default_model: attribution_example
+    badcase_prompt_name: badcase_attribution
+    badcase_runtime_options:
+      max_react_rounds: 4
+      confidence_threshold: 0.65
+      llm_call_timeout_s: 300
+tools:
+  providers:
+  - trace
+  extensions:
+    trace:
+      max_observation_chars: 65536
+      timeout_seconds: 30
+      max_retries: 3
+      resolve_lookback_days: 14

@@ -1,0 +1,85 @@
+<View>
+  <Header value="Badcase Review" />
+
+  <View style="display:flex; gap:12px; background:#f0f4f8; padding:8px 12px; border-radius:6px; margin-bottom:12px;">
+    <Text name="id_trace" value="Trace: $trace_id" />
+    <Text name="id_agent" value="Agent: $agent_name" />
+    <Text name="id_evaluator" value="Evaluator: $evaluator_name" />
+  </View>
+
+  <View style="display:flex; gap:20px;">
+    <View style="flex:1;">
+      <Header value="Agent Input" size="4" />
+      <HyperText name="agent_input_display" value="$agent_input" />
+    </View>
+    <View style="flex:1;">
+      <Header value="Agent Output" size="4" />
+      <HyperText name="agent_output_display" value="$agent_output" />
+    </View>
+  </View>
+
+  <!-- ══ Extra Context ══ -->
+
+  <View style="background:#f3e5f5; padding:8px 12px; border-radius:6px; margin-bottom:12px;">
+    <Header value="Extra Context" size="5" />
+    <Text name="extra_display" value="$extra" />
+  </View>
+
+  <!-- ══ Section 1: Judge Score + Triage Level Review ══ -->
+
+  <Header value="Judge Score Review" size="3" />
+
+  <View style="background:#fff8e1; padding:8px 12px; border-radius:6px; margin-bottom:8px;">
+    <Text name="judge_display" value="Score: $judge_score | Reason: $judge_reason | Triage: $triage_level" />
+  </View>
+
+  <Header value="Score Correct?" size="5" />
+  <Choices name="judge_score_correct" toName="review_anchor" choice="single" required="true">
+    <Choice value="yes" />
+    <Choice value="no" />
+  </Choices>
+
+  <TextArea name="corrected_score" toName="review_anchor" rows="1"
+            placeholder="Corrected score (only when incorrect)" required="false" />
+
+  <TextArea name="corrected_reason" toName="review_anchor" rows="2"
+            placeholder="Corrected reason (only when incorrect)" required="false" />
+
+  <Header value="Triage Level Correct?" size="5" />
+  <Choices name="triage_level_correct" toName="review_anchor" choice="single" required="true">
+    <Choice value="yes" />
+    <Choice value="no" />
+  </Choices>
+
+  <Choices name="corrected_triage_level" toName="review_anchor" choice="single" required="false">
+    <Choice value="good" />
+    <Choice value="watch" />
+    <Choice value="mild_bad" />
+    <Choice value="severe_bad" />
+  </Choices>
+
+  <!-- ══ Section 2: Attribution Review ══ -->
+
+  <Header value="Attribution Review" size="3" />
+
+  <View style="background:#e8f5e9; padding:8px 12px; border-radius:6px; margin-bottom:8px;">
+    <Text name="attr_display" value="Root Cause: $root_cause | Category: $category | Confidence: $confidence" />
+    <Text name="reasoning_display" value="Reasoning: $reasoning" />
+  </View>
+
+  <Header value="Attribution Correct?" size="5" />
+  <Choices name="attribution_correct" toName="review_anchor" choice="single" required="true">
+    <Choice value="yes" />
+    <Choice value="partial" />
+    <Choice value="no" />
+  </Choices>
+
+  <TextArea name="corrected_root_cause" toName="review_anchor" rows="1"
+            placeholder="Corrected root cause (only when incorrect)" required="false" />
+
+  <TextArea name="corrected_owner_group" toName="review_anchor" rows="1"
+            placeholder="Corrected owner group (only when incorrect)" required="false" />
+
+  <!-- Hidden anchor for all controls -->
+  <Text name="review_anchor" value="$trace_id" hidden="true" />
+</View>

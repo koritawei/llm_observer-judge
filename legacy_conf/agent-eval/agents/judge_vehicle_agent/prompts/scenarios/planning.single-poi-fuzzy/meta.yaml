@@ -1,0 +1,17 @@
+id: planning.single-poi-fuzzy
+title: 单一地点搜索和规划 / 单一地点多条件、模糊搜索
+task_type: planning
+section: 车机-Max
+expected_markdown: true
+expected_cmd: false
+scoring: 搜索类 0/1/2 分
+case_count: 10
+sample_queries:
+  - 帮我找一个能带宠物、有宝宝椅、适合约会和拍照打卡的网红咖啡厅，最好有室外可以围炉煮茶的
+  - 周末想带孩子去做个diy手工，帮我找个地方。最好在做diy手工旁边就有洗车的地方
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

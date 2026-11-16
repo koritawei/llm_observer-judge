@@ -1,0 +1,107 @@
+{
+  "before": {
+    "run_id": "evolution-before-20261113-64f2c1",
+    "status": "completed",
+    "final_score": 0.25,
+    "items": [
+      {
+        "item_id": "hello",
+        "role": "good",
+        "score": 1.0,
+        "output": {
+          "text": "你好"
+        }
+      },
+      {
+        "item_id": "boil",
+        "role": "bad",
+        "score": 0.0,
+        "output": {
+          "text": ""
+        }
+      },
+      {
+        "item_id": "refund",
+        "role": "bad",
+        "score": 0.0,
+        "output": {
+          "text": ""
+        }
+      },
+      {
+        "item_id": "redeye",
+        "role": "heldout",
+        "score": 0.0,
+        "output": {
+          "text": ""
+        }
+      }
+    ]
+  },
+  "trial": {
+    "run_id": "evolution-trial-20261113-99d2b0",
+    "status": "completed",
+    "final_score": 1.0
+  },
+  "evolution": {
+    "campaign_id": "evo-f8d115d78959",
+    "visited": [
+      "s03_freeze",
+      "s04_diagnose",
+      "s05_plan",
+      "s06_lease",
+      "s07_propose",
+      "s08_seal",
+      "s09_skill",
+      "s10_tool",
+      "s11_fast_check",
+      "s12_trial"
+    ],
+    "status": "blocked",
+    "stage_outcome": "inconclusive",
+    "release_authorization": "denied",
+    "reason": "heldout_not_collected"
+  },
+  "after": {
+    "run_id": "evolution-after-20261113-b6ffc8",
+    "status": "completed",
+    "final_score": 1.0,
+    "items": [
+      {
+        "item_id": "hello",
+        "role": "good",
+        "score": 1.0,
+        "output": {
+          "text": "你好"
+        }
+      },
+      {
+        "item_id": "boil",
+        "role": "bad",
+        "score": 1.0,
+        "output": {
+          "text": "100摄氏度"
+        }
+      },
+      {
+        "item_id": "refund",
+        "role": "bad",
+        "score": 1.0,
+        "output": {
+          "text": "七天内可退"
+        }
+      },
+      {
+        "item_id": "redeye",
+        "role": "heldout",
+        "score": 1.0,
+        "output": {
+          "text": "用修复笔点掉红眼"
+        }
+      }
+    ]
+  },
+  "score_before": 0.25,
+  "score_after": 1.0,
+  "score_delta": 0.75
+}

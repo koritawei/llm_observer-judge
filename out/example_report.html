@@ -1,0 +1,2209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent 天级跟踪日报</title>
+<style>
+/* 纸质报告：暖底、衬线标题、语义色只用于好坏，不铺装饰渐变 */
+:root{
+  --bg:#f3efe6;
+  --surface:#fffdf8;
+  --surface-2:#f7f3ea;
+  --surface-3:#efe9dc;
+  --ink:#1c1915;
+  --ink-2:#4e463c;
+  --ink-3:#6f6558;
+  --ink-4:#9a8f80;
+  --line:#e4dccb;
+  --line-soft:#efe8d8;
+  --brand:#0f6e6a;
+  --brand-2:#1a8f86;
+  --brand-soft:#e7f4f2;
+  --brand-ink:#0c4f4c;
+  --good:#1f7a4d;--good-soft:#eef6f0;
+  --warn:#9a6412;--warn-soft:#fbf4e4;
+  --bad:#a33b32;--bad-soft:#f8eeeb;
+  --info:#2c5278;--info-soft:#eef3f8;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Songti SC","Noto Serif SC",serif;
+  --sans:"Avenir Next","PingFang SC","Hiragino Sans GB","Noto Sans SC","Segoe UI",sans-serif;
+  --r-sm:6px;--r-md:12px;--r-lg:18px;--r-pill:999px;
+  --e1:0 1px 1px rgba(48,36,16,.04);
+  --e2:0 10px 30px rgba(48,36,16,.05);
+  --e3:0 24px 60px rgba(28,25,21,.16);
+  --nav-h:52px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(980px 420px at 0% -8%,rgba(15,110,106,.09),transparent 58%),radial-gradient(760px 360px at 100% 0%,rgba(154,100,18,.07),transparent 52%),var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px}
+.container{max-width:1120px;margin:0 auto;padding:28px 28px 64px}
+.report-masthead{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.85fr);background:var(--surface);border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:var(--e2)}
+#qhub-banner{position:relative;overflow:hidden;background:linear-gradient(165deg,#163632 0%,#1d4a44 58%,#2c6154 100%);color:#f7f3ea;border-radius:0;padding:36px 36px 32px;min-height:168px}
+#qhub-banner::before{content:'';position:absolute;inset:auto -40px -50px auto;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(232,196,122,.28),transparent 68%)}
+#qhub-banner::after{content:'';position:absolute;left:36px;bottom:0;width:72px;height:3px;background:#e8c47a;border-radius:3px 3px 0 0}
+#qhub-banner h2,#qhub-banner p{position:relative}
+.kicker{position:relative;font-size:11px;font-weight:650;letter-spacing:.22em;text-transform:uppercase;color:#e8c47a;margin-bottom:12px}
+#qhub-banner h2{font-family:var(--serif);font-size:34px;font-weight:600;margin-bottom:8px;letter-spacing:-.4px;line-height:1.15}
+#qhub-banner p{font-size:14px;color:rgba(247,243,234,.78);font-weight:400;max-width:36em}
+header.card{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:16px;border:none;border-radius:0;border-left:1px solid var(--line);padding:28px 28px 26px;box-shadow:none;background:linear-gradient(180deg,#fffdf8,#f6f1e6)}
+header h1{font-family:var(--serif);font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.3px;line-height:1.2}
+header h1 em{font-style:italic;color:var(--brand)}
+.meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:var(--r-pill);font-size:11px;font-weight:650;letter-spacing:.02em;background:var(--brand-soft);color:var(--brand-ink);border:1px solid rgba(15,110,106,.16)}
+.badge.date{background:var(--good-soft);color:#1a5c38;border-color:rgba(31,122,77,.16)}
+.rule-link-slot{display:inline-flex;align-items:center;padding:5px 11px;border-radius:var(--r-pill);font-size:11px;font-weight:650;background:var(--surface);color:var(--ink-3);border:1px solid var(--line);cursor:default}
+a.rule-link{display:inline-flex;align-items:center;padding:5px 11px;border-radius:var(--r-pill);font-size:11px;font-weight:650;background:var(--surface);color:var(--brand-ink);border:1px solid rgba(15,110,106,.28);text-decoration:none;transition:background .15s,box-shadow .15s}
+a.rule-link:hover{background:var(--brand-soft);box-shadow:var(--e1)}
+.sec{display:flex;align-items:center;gap:12px;font-family:var(--serif);font-size:20px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink);margin:40px 0 14px;scroll-margin-top:calc(var(--nav-h) + 16px)}
+.sec::before{content:'';flex:none;width:22px;height:2px;border-radius:2px;background:var(--brand)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px;box-shadow:var(--e2);position:relative;overflow:hidden}
+.report-nav{position:sticky;top:0;z-index:40;margin:18px -8px 0;padding:10px 8px;background:rgba(243,239,230,.9);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid transparent}
+.report-nav-inner{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:1px}
+.report-nav-inner::-webkit-scrollbar{display:none}
+.report-nav a{flex:none;padding:7px 13px;border-radius:var(--r-pill);font-size:12px;font-weight:650;color:var(--ink-3);text-decoration:none;white-space:nowrap;border:1px solid transparent;transition:background .15s,color .15s,border-color .15s}
+.report-nav a:hover{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.report-nav a.active{background:var(--ink);color:#f7f3ea;border-color:var(--ink)}
+.insight-banner{background:var(--warn-soft);border:1px solid #ead7ae;border-left:3px solid #c4892a;border-radius:var(--r-md);padding:16px 18px;font-size:14px;line-height:1.7;color:#5c4314;margin:22px 0 4px}
+.summary-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 24px;margin:20px 0;box-shadow:var(--e2);position:relative;overflow:hidden}
+.summary-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--info)}
+.summary-card h3{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:700;color:var(--ink);margin-bottom:10px}
+.summary-card h3::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--info)}
+.summary-conclusion{font-size:14px;color:var(--ink);margin-bottom:12px;font-weight:500;line-height:1.7}
+.summary-bullets{list-style:none;padding:0;margin:0}
+.summary-bullets li{font-size:13px;color:var(--ink-2);padding:4px 0 4px 18px;position:relative;line-height:1.6}
+.summary-bullets li::before{content:'';position:absolute;left:0;top:11px;width:6px;height:6px;border-radius:50%;background:var(--info)}
+.summary-action{margin-top:14px;padding:12px 14px;background:var(--warn-soft);border:1px solid #ead7ae;border-radius:var(--r-md);font-size:13px;color:#5c4314;border-left:3px solid #c4892a;line-height:1.6}
+.problem-stack{display:flex;flex-direction:column;gap:14px}
+.problem-card{background:var(--surface);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--e2);border:1px solid var(--line);border-left:3px solid var(--bad)}
+.problem-card.p1{border-left-color:var(--warn)}
+.problem-card.p2{border-left-color:var(--info)}
+.problem-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.problem-rank{font-size:10px;font-weight:700;letter-spacing:.4px;color:#fff;background:var(--bad);padding:3px 8px;border-radius:var(--r-sm)}
+.problem-card.p1 .problem-rank{background:var(--warn)}
+.problem-card.p2 .problem-rank{background:var(--info)}
+.problem-name{font-size:14px;font-weight:600;color:var(--ink)}
+.problem-trend{font-size:11px;font-weight:600;color:var(--bad);background:var(--bad-soft);padding:3px 9px;border-radius:var(--r-pill);margin-left:auto}
+.problem-trend.stable{color:var(--ink-3);background:var(--surface-3)}
+.problem-stats{display:flex;gap:28px;margin-bottom:14px;flex-wrap:wrap}
+.problem-stat{display:flex;flex-direction:column}
+.problem-stat .num{font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.3px}
+.problem-stat .num.neg{color:var(--bad)}
+.problem-stat .lbl{font-size:11px;color:var(--ink-4);margin-top:2px}
+.problem-subtitle{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-4);margin-bottom:8px}
+.rc-chain{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.rc-chain-step{font-size:12px;padding:6px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);color:var(--ink-2)}
+.rc-chain-step.highlight{background:var(--bad-soft);border-color:#fecaca;color:var(--bad);font-weight:600}
+.rc-chain-arrow{color:var(--ink-4);font-size:14px}
+.problem-case{font-size:12px;color:var(--ink-2);padding:9px 12px;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:var(--r-md);line-height:1.6}
+.problem-case .label{font-weight:600;color:var(--ink);margin-right:6px}
+
+/* KPI 卡：auto-fit 自适应列数，无需断点；卡内固定「标签→数值→上下文→环比」四段 */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(212px,100%),1fr));gap:14px}
+.kpi{background:linear-gradient(180deg,#fffdf8,#f8f4eb);border:1px solid var(--line);border-radius:var(--r-lg);padding:20px 20px 18px;box-shadow:none;position:relative;overflow:hidden;transition:border-color .18s ease,transform .18s ease}
+.kpi:hover{border-color:#d4c9b2;transform:translateY(-1px)}
+.kpi::after{content:'';position:absolute;top:18px;bottom:18px;left:0;width:3px;height:auto;background:var(--accent,var(--brand));border-radius:0 3px 3px 0}
+.kpi-label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3);font-weight:650;letter-spacing:.04em;margin-bottom:12px}
+.kpi-label::before{content:'';flex:none;width:6px;height:6px;border-radius:50%;background:var(--accent,var(--brand))}
+.kpi-value{font-family:var(--serif);font-size:36px;font-weight:600;color:var(--ink);letter-spacing:-1.1px;line-height:1;font-variant-numeric:tabular-nums}
+.kpi-sub{font-size:11px;color:var(--ink-4);margin-top:7px;font-weight:500;line-height:1.45}
+.grades{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:12px}
+.gc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px 14px 16px;box-shadow:none;position:relative;overflow:hidden;text-align:center;transition:border-color .18s ease}
+.gc:hover{border-color:#d4c9b2}
+.gc::after{content:'';position:absolute;left:18px;right:18px;bottom:0;height:3px;background:var(--gc-accent,var(--ink-4));border-radius:3px 3px 0 0}
+.gc-name{font-size:11px;font-weight:650;letter-spacing:.12em;color:var(--ink-3);margin-bottom:8px;text-transform:uppercase}
+.gc-count{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--ink);line-height:1;letter-spacing:-.6px;font-variant-numeric:tabular-nums}
+.gc-pct{font-size:11px;color:var(--ink-4);margin-top:4px;font-weight:500}
+/* 环比 pill：方向 + 变化量 + 变化率，一眼可辨好坏 */
+.kpi-delta,.grade-delta{display:inline-flex;align-items:center;font-size:11px;margin-top:9px;font-weight:600;line-height:1.3;padding:3px 8px;border-radius:var(--r-pill);white-space:nowrap}
+.grade-delta{margin-top:7px}
+.kpi-delta.up,.grade-delta.up{color:#15803d;background:var(--good-soft)}
+.kpi-delta.down,.grade-delta.down{color:#b91c1c;background:var(--bad-soft)}
+.kpi-delta.flat,.grade-delta.flat{color:var(--ink-4);background:var(--surface-2)}
+.kpi-value.compact{font-size:23px;letter-spacing:-.6px}
+.trend-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.trend-row.single{grid-template-columns:1fr}
+.trend-card-title{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:12px}
+.chart-box{height:260px;width:100%;position:relative}
+.chart-box.short{height:210px}
+.chart-box canvas{display:block;width:100%!important;height:100%!important}
+.chart-tooltip{position:absolute;pointer-events:none;background:rgba(21,25,34,.94);color:#fff;font-size:11px;font-weight:500;padding:6px 10px;border-radius:var(--r-sm);white-space:nowrap;z-index:10;display:none;box-shadow:var(--e3)}
+.radar-box{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;flex:1;min-height:0}
+.radar-legend{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:8px;font-size:12px;color:var(--ink-2);flex-shrink:0}
+.radar-legend-item{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;transition:opacity .15s}
+.radar-legend-item.off{opacity:.35;text-decoration:line-through}
+.legend-line{width:24px;height:3px;border-radius:2px}
+.eval-dim-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:28px;align-items:center;min-height:0}
+.eval-dim-left{min-width:0;display:flex;flex-direction:column}
+.eval-dim-right{min-width:0;width:100%;display:flex;flex-direction:column;align-items:center;box-sizing:border-box}
+.dim-tbl-wrap{display:flex;flex-direction:column;width:100%}
+.dim-tbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.dim-tbl th{text-align:left;padding:10px 10px;background:var(--surface-2);border-bottom:1px solid var(--line);color:var(--ink-3);font-weight:600;font-size:10px;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap}
+.dim-tbl td{padding:10px 10px;border-bottom:1px solid var(--line-soft);color:var(--ink);vertical-align:middle}
+.dim-tbl tbody tr{transition:background .12s}
+.dim-tbl tbody tr:hover{background:var(--surface-2)}
+.dim-tbl tr:last-child td{border-bottom:none}
+.dim-tbl .col-name{width:38%}
+.dim-tbl .col-weight{width:12%}
+.dim-tbl .col-score{width:12%}
+.dim-tbl .col-rate{width:12%}
+.dim-tbl .col-dist{width:26%}
+.dim-name{font-weight:600;white-space:normal;overflow:visible;word-break:break-word;line-height:1.4;max-width:none;width:auto}
+.veto-tag{display:inline-block;padding:2px 7px;border-radius:var(--r-sm);font-size:10px;font-weight:700;background:var(--bad-soft);color:var(--bad);letter-spacing:.3px}
+.weight-tag{display:inline-block;padding:2px 7px;border-radius:var(--r-sm);font-size:10px;font-weight:600;background:var(--surface-3);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.dist-bar-track{width:100%;max-width:100%;height:8px;background:var(--surface-3);border-radius:var(--r-pill);overflow:hidden}
+.dist-bar-fill{height:100%;border-radius:var(--r-pill);min-width:2px}
+.wd-section{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.note-muted{font-size:11px;color:var(--ink-4);line-height:1.55;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+/* 分数损失柱：与满分同轴，柱高 = value/start，禁止按 max(loss) 归一化 */
+.waterfall-bars{display:flex;align-items:stretch;gap:6px;height:168px;padding-top:4px}
+.wf-col{flex:1;display:flex;flex-direction:column;min-width:0}
+.wf-plot{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;width:100%;min-height:0}
+.wf-val{font-size:11px;font-weight:600;margin-bottom:5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.wf-bar{width:68%;border-radius:var(--r-sm) var(--r-sm) 0 0;min-height:4px}
+.wf-bar.start{background:linear-gradient(180deg,var(--brand-2),var(--brand))}
+.wf-bar.loss{background:linear-gradient(180deg,#fca5a5,#f87171)}
+.wf-bar.end{background:linear-gradient(180deg,#34d399,var(--good))}
+.wf-label{height:28px;font-size:10px;color:var(--ink-3);margin-top:7px;text-align:center;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
+.delta-list{display:flex;flex-direction:column;gap:7px}
+.delta-row{display:flex;align-items:center;justify-content:space-between;padding:8px 11px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--line-soft);font-size:12px}
+.delta-name{font-weight:600;color:var(--ink);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.delta-val{font-weight:700;font-variant-numeric:tabular-nums;min-width:90px;text-align:right}
+.delta-sub{font-size:10px;color:var(--ink-4);margin-left:6px;font-weight:500}
+.heatmap-wrap{overflow-x:auto}
+.heatmap-tbl{border-collapse:collapse;font-size:11px;width:100%}
+.heatmap-tbl th,.heatmap-tbl td{padding:7px 9px;border:1px solid var(--line-soft);text-align:center;white-space:nowrap}
+.heatmap-tbl th{background:var(--surface-2);color:var(--ink-3);font-weight:600;letter-spacing:.3px}
+.heatmap-tbl td:first-child{text-align:left;font-weight:600;color:var(--ink);background:var(--surface-2)}
+.hm-cell{font-variant-numeric:tabular-nums;font-weight:600}
+.attr-section{margin-bottom:18px}
+.attr-section.card{width:100%;overflow:visible}
+.attr-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.attr-total{font-size:11px;font-weight:600;color:var(--ink-3);background:var(--surface-3);padding:3px 9px;border-radius:var(--r-pill);font-variant-numeric:tabular-nums}
+.attr-field-title{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-4);margin:14px 0 6px}
+.attr-tbl{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px;margin:8px 0 4px}
+.attr-tbl col.ac-col-cat{width:26%}
+.attr-tbl col.ac-col-bar{width:50%}
+.attr-tbl col.ac-col-cnt{width:12%}
+.attr-tbl col.ac-col-pct{width:12%}
+.attr-tbl tr{display:table-row}
+.attr-tbl th{padding:8px 10px;color:var(--ink-3);font-weight:600;font-size:10px;letter-spacing:.6px;text-transform:uppercase;text-align:left;background:var(--surface-2);border-bottom:1px solid var(--line)}
+.attr-tbl td{padding:8px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle;color:var(--ink)}
+.attr-tbl tr.dist-row{cursor:pointer;transition:background .12s}
+.attr-tbl tr.dist-row:hover{background:var(--surface-2)}
+.attr-tbl tr.dist-row.active{box-shadow:inset 3px 0 0 var(--brand);background:var(--brand-soft)}
+.attr-tbl .ac-cat{color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.attr-tbl .ac-bar{width:50%}
+.attr-tbl .ac-track{display:block;height:9px;background:var(--surface-3);border-radius:var(--r-pill);overflow:hidden;width:100%}
+.attr-tbl .ac-fill{display:block;height:100%;background:linear-gradient(90deg,var(--brand-2),var(--brand));border-radius:var(--r-pill);min-width:0}
+.attr-tbl .ac-cnt{text-align:right;color:var(--ink);font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.attr-tbl .ac-pct{text-align:right;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+.dist-row{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:var(--r-md);cursor:pointer;transition:background .12s;font-size:12px;margin-bottom:4px}
+.dist-row:hover{background:var(--surface-2)}
+.dist-row.active{border-left:3px solid var(--brand);background:var(--brand-soft)}
+.dist-label{flex:0 0 140px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dist-bar-wrap{flex:1;min-width:0}
+.dist-bar-track,.dist-bar{flex:1;height:9px;background:var(--surface-3);border-radius:var(--r-pill);overflow:hidden}
+.dist-bar-fill{display:block;height:100%;min-width:2px;background:linear-gradient(90deg,var(--brand-2),var(--brand));border-radius:var(--r-pill)}
+.dist-count{flex:0 0 50px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2);font-weight:600}
+.dist-pct{flex:0 0 48px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-4);font-size:11px}
+.query-tip-float{position:fixed;z-index:9999;max-width:min(480px,80vw);max-height:240px;overflow:auto;padding:10px 12px;background:#151922;color:#f9fafb;font-size:12px;line-height:1.55;white-space:pre-wrap;user-select:text;-webkit-user-select:text;border-radius:var(--r-md);box-shadow:var(--e3);pointer-events:auto}
+.table-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.table-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.search-box{width:280px;padding:7px 12px;border:1px solid var(--line);border-radius:var(--r-md);font-size:13px;color:var(--ink);background:var(--surface-2);outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+.search-box:focus{border-color:var(--brand);background:var(--surface);box-shadow:0 0 0 3px rgba(15,110,106,.16)}
+.filter-select{padding:7px 12px;border:1px solid var(--line);border-radius:var(--r-md);font-size:13px;color:var(--ink);background:var(--surface);outline:none;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.filter-select:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(15,110,106,.16)}
+.root-cause-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:var(--r-pill);font-size:11px;font-weight:600;background:var(--brand-soft);color:var(--brand-ink);border:1px solid rgba(79,70,229,.16);margin-bottom:10px}
+.root-cause-tag span{cursor:pointer;font-size:13px;line-height:1;margin-left:2px;opacity:.7}
+.root-cause-tag span:hover{opacity:1}
+.table-wrapper{overflow:auto;max-height:70vh;border-radius:var(--r-md);border:1px solid var(--line);background:var(--surface);cursor:grab}
+.table-wrapper.grabbing{cursor:grabbing}
+table.case-tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;table-layout:auto}
+table.case-tbl thead{position:sticky;top:0;z-index:2}
+table.case-tbl th{position:sticky;top:0;background:var(--surface-2);border-bottom:1px solid var(--line);box-shadow:0 1px 0 var(--line);padding:11px 12px;text-align:left;font-weight:600;color:var(--ink-3);font-size:10px;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap}
+table.case-tbl td{padding:11px 12px;border-bottom:1px solid var(--line-soft);color:var(--ink);vertical-align:top}
+table.case-tbl tbody tr{transition:background .12s}
+table.case-tbl tbody tr:hover{background:var(--surface-2)}
+.col-output{width:10em;white-space:normal!important;overflow-wrap:anywhere;word-break:break-word}
+.cell-truncate{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;display:block;cursor:default}
+.case-id-link{color:var(--brand);text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-weight:600;font-variant-numeric:tabular-nums}
+.case-id-link:hover{color:var(--brand-ink)}
+.trace-link{color:var(--brand);text-decoration:none;font-weight:600;white-space:nowrap}
+.trace-link:hover{text-decoration:underline;text-underline-offset:2px}
+.rux-trace-link{margin-left:auto;margin-right:12px;font-size:12px;color:var(--brand);text-decoration:none;font-weight:600;white-space:nowrap}
+.rux-trace-link:hover{text-decoration:underline}
+.score-lines{display:flex;flex-direction:column;gap:3px;font-size:11px;line-height:1.5;font-variant-numeric:tabular-nums}
+.score-line{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.mini-bar{display:inline-block;width:40px;height:4px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;vertical-align:middle;margin-left:2px}
+.mini-bar-fill{height:100%;border-radius:var(--r-pill)}
+.grade-badge{display:inline-block;padding:3px 8px;border-radius:var(--r-sm);font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;border:1px solid transparent}
+.grade-excellent,.grade-good{background:var(--good-soft);color:#15803d;border-color:rgba(22,163,74,.16)}
+.grade-acceptable{background:var(--info-soft);color:#1d4ed8;border-color:rgba(37,99,235,.16)}
+.grade-poor,.grade-fail{background:var(--bad-soft);color:#b91c1c;border-color:rgba(220,38,38,.16)}
+.rc-badge{display:inline-block;padding:3px 7px;border-radius:var(--r-sm);font-size:10px;font-weight:600;background:var(--brand-soft);color:var(--brand-ink);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.muted{color:var(--ink-4)!important}
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+.pagination button{min-width:32px;padding:6px 12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);color:var(--ink-2);font-size:12px;font-variant-numeric:tabular-nums;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.pagination button:hover:not(.disabled):not(.active){background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
+.pagination button.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.pagination button.disabled{pointer-events:none;opacity:.4}
+.pagination .page-info{margin-right:10px;font-weight:600;color:var(--ink-3)}
+.detail-overlay{position:fixed;inset:0;background:rgba(21,25,34,.45);backdrop-filter:blur(2px);z-index:100;display:none;align-items:center;justify-content:center}
+.detail-overlay.visible{display:flex}
+.detail-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--e3);width:90%;max-width:900px;max-height:90vh;overflow-y:auto;z-index:101;display:none;padding:24px 28px}
+.detail-modal.visible{display:block}
+.detail-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--line-soft)}
+.detail-modal-title{font-size:16px;font-weight:700;color:var(--ink)}
+.detail-modal-close{width:32px;height:32px;border:none;background:var(--surface-3);border-radius:var(--r-md);font-size:18px;color:var(--ink-3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
+.detail-modal-close:hover{background:var(--brand-soft);color:var(--brand)}
+.detail-section{margin-bottom:18px}
+.detail-section-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--ink-4);margin-bottom:7px}
+.detail-text{font-size:13px;color:var(--ink);line-height:1.65;white-space:pre-wrap;word-break:break-word}
+.detail-query{font-size:13px;color:var(--ink);line-height:1.65;word-break:break-word}
+.query-toggle{cursor:pointer;color:var(--brand)}
+.query-toggle:hover{text-decoration:underline}
+.query-toggle.open{font-weight:600}
+.attr-fold-toggle{cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin:6px 0 4px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--brand);user-select:none}
+.detail-subtitle{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--ink-4);margin:2px 0 4px}
+.attr-fold-toggle:hover{text-decoration:underline}
+.attr-fold-toggle .attr-fold-arrow{display:inline-block;transition:transform .15s ease;font-size:9px;color:var(--ink-4)}
+.attr-fold-toggle.open .attr-fold-arrow{transform:rotate(90deg)}
+dl.attr-fold-body{display:none}
+dl.attr-fold-body.open{display:grid}
+.trace-detail-row>td{background:var(--surface-2);padding:0;border-bottom:1px solid var(--line)}
+.trace-dropdown{padding:16px 20px;border-left:3px solid var(--brand)}
+.detail-md{font-size:13px;color:var(--ink);line-height:1.7;word-break:break-word}
+.detail-md p{margin:0 0 8px}
+.detail-md h1,.detail-md h2,.detail-md h3,.detail-md h4,.detail-md h5,.detail-md h6,.detail-md-h{margin:14px 0 8px;font-weight:700;line-height:1.35}
+.detail-md h1{font-size:17px}.detail-md h2{font-size:15px}.detail-md h3{font-size:14px}
+.detail-md ul,.detail-md ol{margin:0 0 8px;padding-left:22px}
+.detail-md li{margin:2px 0}
+.detail-md blockquote{margin:0 0 8px;padding:8px 12px;border-left:3px solid var(--line);color:var(--ink-2);background:var(--surface-2);border-radius:0 var(--r-sm) var(--r-sm) 0}
+.detail-md code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--surface-3);padding:2px 5px;border-radius:4px}
+.detail-md-pre{background:#151922;color:#f9fafb;padding:12px 14px;border-radius:var(--r-md);overflow:auto;margin:0 0 8px;font-size:12px;line-height:1.6}
+.detail-md-pre code{background:transparent;color:inherit;padding:0}
+.detail-md-table{border-collapse:collapse;width:100%;margin:0 0 8px;font-size:12px}
+.detail-md-table th,.detail-md-table td{border:1px solid var(--line);padding:7px 9px;text-align:left}
+.detail-md-table th{background:var(--surface-2);font-weight:600;color:var(--ink-3)}
+.detail-kv{display:grid;grid-template-columns:100px 1fr;gap:5px 12px;font-size:13px;margin-bottom:8px}
+.detail-kv dt{color:var(--ink-3);font-weight:600}
+.detail-kv dd{color:var(--ink);word-break:break-word}
+.detail-score-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:12px}
+.detail-score-row:last-child{border-bottom:none}
+.detail-score-name{flex:0 0 120px;font-weight:600;color:var(--ink)}
+.detail-score-val{flex:0 0 50px;font-weight:700;font-variant-numeric:tabular-nums}
+.detail-score-reason{flex:1;color:var(--ink-2);line-height:1.55}
+@media(max-width:900px){
+  .wd-section{grid-template-columns:1fr}
+  .trend-row{grid-template-columns:1fr}
+  .eval-dim-card{grid-template-columns:1fr;gap:20px}
+  .eval-dim-right{width:100%}
+  .report-masthead{grid-template-columns:1fr}
+  header.card{border-left:none;border-top:1px solid var(--line)}
+}
+@media(max-width:768px){
+  header.card{align-items:flex-start}
+  #qhub-banner{padding:28px 22px 24px}
+  #qhub-banner h2{font-size:28px}
+  .search-box{width:100%}
+  .table-controls{width:100%}
+}
+@media(max-width:480px){
+  .container{padding:12px 12px 32px}
+  .kpi-value{font-size:26px}
+}
+/* 打印/导出 PDF：去掉交互层与阴影，保留数据层 */
+@media print{
+  body{background:#fff}
+  .report-nav,.pagination,.table-controls,.detail-overlay,.detail-modal{display:none!important}
+  .card,.kpi,.gc,.problem-card,.summary-card{box-shadow:none;break-inside:avoid}
+  .table-wrapper{max-height:none;overflow:visible}
+  #qhub-banner{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="report-masthead">
+  <div id="qhub-banner">
+    <p class="kicker">Benchmark Report</p>
+    <h2>AI Agent迭代质量</h2>
+    <p>评测结果速览，趋势一目了然</p>
+  </div>
+
+  <header class="card">
+    <h1><em>Agent</em> 天级跟踪日报</h1>
+    <div class="meta">
+      <span class="badge" id="meta-env">—</span>
+      <span class="badge" id="meta-samples">— 样本</span>
+      <span class="badge date" id="meta-date" data-slot="report_date">—</span>
+      <span class="rule-link-slot">评分规则</span>
+    </div>
+  </header>
+  </div>
+
+  <!-- 章节导航：initSectionNav 渲染完成后扫描 .sec 生成，无章节则保持 hidden -->
+  <nav class="report-nav" id="report-nav" hidden><div class="report-nav-inner" id="report-nav-inner"></div></nav>
+
+  <div id="insight-section" data-slot="insight_text"></div>
+
+  <div class="sec">效果指标</div>
+  <div class="kpi-grid" id="kpi-grid" data-slot="kpis"></div>
+
+  <!-- 性能 & 效率：renderPerfKPI 读取 REPORT.performance_metrics，无数据整栏不渲染 -->
+  <div id="perf-section" data-slot="performance_metrics"></div>
+
+  <!-- 档位分布：renderGrades 读取 REPORT.grade_distribution，固定五档 -->
+  <div id="grades-section" data-slot="grade_distribution"></div>
+
+  <!-- 近 7 天趋势：renderTrend + drawTrendChart 读取 REPORT.trend_7d -->
+  <div id="trend-section" data-slot="trend_7d"></div>
+
+  <div class="sec">评测维度</div>
+  <div class="card">
+    <div class="eval-dim-card">
+      <div class="eval-dim-left">
+        <div class="dim-tbl-wrap">
+          <table class="dim-tbl" id="dim-table">
+            <thead><tr>
+              <th class="dim-name col-name">维度</th>
+              <th class="col-weight">权重</th>
+              <th class="col-score">得分</th>
+              <th class="col-rate">满分率</th>
+              <th class="col-dist">分布</th>
+            </tr></thead>
+            <tbody id="dim-tbody" data-slot="criteria"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="eval-dim-right">
+        <div class="radar-box" id="radar-chart-box">
+          <div class="chart-tooltip" id="radar-tooltip"></div>
+        </div>
+        <div class="radar-legend" id="radar-legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分数损失瀑布 + 维度环比：REPORT.score_loss_waterfall / criterion_deltas -->
+  <div id="waterfall-delta-section" data-slot="score_loss_waterfall,criterion_deltas"></div>
+
+  <!-- 根因×维度失分矩阵：REPORT.root_cause_dim_matrix -->
+  <div id="heatmap-section" data-slot="root_cause_dim_matrix"></div>
+
+  <!-- 不合格归因：REPORT.attribution_metrics -->
+  <div id="attribution-section" data-slot="attribution_metrics"></div>
+
+  <!-- Top 问题深度剖析：REPORT.top_problems（洞察 LLM 生成） -->
+  <div id="top-problems-section" data-slot="top_problems"></div>
+
+  <!-- Case 明细：CASES / cases-data -->
+  <div id="case-section" data-slot="case_results"></div>
+</div>
+
+<div class="detail-overlay" id="detail-overlay" onclick="if(event.target===this)closeDetail()"></div>
+<div class="detail-modal" id="detail-modal">
+  <div class="detail-modal-header">
+    <div class="detail-modal-title" id="detail-title">用例详情</div>
+    <button class="detail-modal-close" onclick="closeDetail()">×</button>
+  </div>
+  <div id="detail-body"></div>
+</div>
+
+<script type="application/json" id="report-data">{"run_id": "example-20261112", "benchmark_name": "example_benchmark", "service_name": "example", "dataset_name": "example-simulated", "rule_link_url": null, "final_score": 3.658333333333333, "aggregation_method": "weighted_avg", "total_samples": 6, "total_failed": 0, "total_success": 6, "total_duration_ms": null, "criteria": [{"id": "准确度", "name": "准确度", "weight": 0.4, "full_score": 10.0}, {"id": "相关性", "name": "相关性", "weight": 0.3, "full_score": 10.0}, {"id": "完整性", "name": "完整性", "weight": 0.3, "full_score": 10.0}], "criterion_metrics": {"准确度": {"mean": 3.3333333333333335}, "相关性": {"mean": 4.75}, "完整性": {"mean": 3.0}}, "attribution_metrics": {}, "react_rounds_summary": {}, "performance_metrics": {}, "grade_distribution": {"EXCELLENT": 2, "GOOD": 0, "ACCEPTABLE": 0, "POOR": 3, "FAIL": 1}, "yesterday_grade_distribution": {}, "trend_7d": null, "today_criterion_means": {"准确度": 3.3333333333333335, "相关性": 4.75, "完整性": 3.0}, "yesterday_criterion_means": {}, "insight_text": "example judge 对 6 条模拟问答完成打分。样本没有线上 trace，归因步骤未执行。", "insight_summary": {"conclusion": "模拟集同时覆盖答对、答不全、答非所问和事实错误，档位已拉开。", "bullets": ["综合均分 3.66 / 10。", "归因依赖 trace，本批模拟样本未生成归因结论。"], "action": "把真实 trace 接上后再跑 attribution_example。"}, "top_problems": null, "report_date": "2026-11-12", "score_loss_waterfall": null, "criterion_deltas": null, "root_cause_dim_matrix": null, "fused_attr_field": "primary_issue_category", "judge_reason_preferred_keys": ["fused"], "case_columns": [], "score_full_mark": 10.0}</script>
+<script type="application/json" id="cases-data">[{"case_id": "ex-01", "display_case_id": "ex-01", "display_input": "杭州明天会下雨吗？", "display_output": "根据公开预报，杭州明天有中雨，最高气温约 22 度，建议出门带伞。", "expected_output": "说明明天是否下雨，并补充气温或出行建议。", "grade": "EXCELLENT", "reason": "准确度：回答明确给出杭州明天有中雨，并补充最高气温约22度，信息具体且无明显矛盾（trace不可用，不据此压分）。相关性：直接回应用户'明天是否下雨'的核心问题，并附带气温与带伞建议，紧扣意图。完整性：覆盖了是否下雨、气温、出行建议三个要点，符合expected_output要求；仅'中雨'与'下雨'的表述可更细化（如时段），属细微改进空间。总评：核心检查点全部满足，expected_output要求基本全部覆盖，表述清晰简洁，达到良好偏优秀水平。", "scores": {"fused": {"score": 8.7, "reason": "准确度：回答明确给出杭州明天有中雨，并补充最高气温约22度，信息具体且无明显矛盾（trace不可用，不据此压分）。相关性：直接回应用户'明天是否下雨'的核心问题，并附带气温与带伞建议，紧扣意图。完整性：覆盖了是否下雨、气温、出行建议三个要点，符合expected_output要求；仅'中雨'与'下雨'的表述可更细化（如时段），属细微改进空间。总评：核心检查点全部满足，expected_output要求基本全部覆盖，表述清晰简洁，达到良好偏优秀水平。"}, "准确度": {"score": 9.0}, "相关性": {"score": 9.0}, "完整性": {"score": 8.0}}, "root_cause_display": "模拟样本无 trace，未做归因", "attribution": {"primary_issue_category": "未归因", "root_cause": "模拟样本无 trace，未做归因"}}, {"case_id": "ex-02", "display_case_id": "ex-02", "display_input": "这件衣服七天内能退吗？", "display_output": "未穿着、吊牌齐全的衣服，签收后 7 天内可以无理由退货，运费由买家承担。", "expected_output": "说明 7 天无理由退货是否适用，以及吊牌和运费条件。", "grade": "EXCELLENT", "reason": "准确度：回答正确说明未穿着、吊牌齐全的衣服签收后7天内可无理由退货，运费由买家承担，符合7天无理由退货的常见规则，无明显事实错误。相关性：直接回应用户'七天内能退吗'的核心诉求，给出适用条件与运费说明，相关性高。完整性：覆盖了expected_output要求的三个要点——7天无理由退货是否适用（适用）、吊牌条件（吊牌齐全）、运费条件（买家承担），核心要求全部满足；但未提及'未穿着'之外的其他限制（如商品完好、非特殊品类等），细节略有可补充空间，属次要瑕疵。总评：expected_output核心要求全部满足，回答准确简洁，仅有细微可补充之处，综合8分。", "scores": {"fused": {"score": 8.0, "reason": "准确度：回答正确说明未穿着、吊牌齐全的衣服签收后7天内可无理由退货，运费由买家承担，符合7天无理由退货的常见规则，无明显事实错误。相关性：直接回应用户'七天内能退吗'的核心诉求，给出适用条件与运费说明，相关性高。完整性：覆盖了expected_output要求的三个要点——7天无理由退货是否适用（适用）、吊牌条件（吊牌齐全）、运费条件（买家承担），核心要求全部满足；但未提及'未穿着'之外的其他限制（如商品完好、非特殊品类等），细节略有可补充空间，属次要瑕疵。总评：expected_output核心要求全部满足，回答准确简洁，仅有细微可补充之处，综合8分。"}, "准确度": {"score": 8.0}, "相关性": {"score": 8.5}, "完整性": {"score": 7.5}}, "root_cause_display": "模拟样本无 trace，未做归因", "attribution": {"primary_issue_category": "未归因", "root_cause": "模拟样本无 trace，未做归因"}}, {"case_id": "ex-03", "display_case_id": "ex-03", "display_input": "从北京南到上海虹桥，明天最早的高铁几点？", "display_output": "北京到上海有高铁，大概早上出发，具体车次请再查一下。", "expected_output": "给出明天北京南到上海虹桥最早一班的大致发车时间。", "grade": "POOR", "reason": "用户核心诉求是获取明天北京南到上海虹桥最早一班高铁的具体发车时间。期望输出要求给出大致发车时间。Agent 回答仅泛泛表示'有高铁、大概早上出发、具体车次请再查一下'，未给出任何具体或大致发车时间，核心必答项完全缺失。准确度：未提供任何可核验的时间信息，几乎无有效内容，给2分。相关性：话题相关（高铁、早上出发），但未回应用户核心诉求，给4分。完整性：核心信息（最早发车时间）完全缺失，仅1分。综合分约2.0，低于归因门限3.0。总评：回答未满足 expected_output 的核心要求，属严重不完整。 【失败摘要】未给出明天北京南到上海虹桥最早一班高铁的发车时间，核心必答项缺失。", "scores": {"fused": {"score": 2.3, "reason": "用户核心诉求是获取明天北京南到上海虹桥最早一班高铁的具体发车时间。期望输出要求给出大致发车时间。Agent 回答仅泛泛表示'有高铁、大概早上出发、具体车次请再查一下'，未给出任何具体或大致发车时间，核心必答项完全缺失。准确度：未提供任何可核验的时间信息，几乎无有效内容，给2分。相关性：话题相关（高铁、早上出发），但未回应用户核心诉求，给4分。完整性：核心信息（最早发车时间）完全缺失，仅1分。综合分约2.0，低于归因门限3.0。总评：回答未满足 expected_output 的核心要求，属严重不完整。 【失败摘要】未给出明天北京南到上海虹桥最早一班高铁的发车时间，核心必答项缺失。"}, "准确度": {"score": 2.0}, "相关性": {"score": 4.0}, "完整性": {"score": 1.0}}, "root_cause_display": "模拟样本无 trace，未做归因", "attribution": {"primary_issue_category": "未归因", "root_cause": "模拟样本无 trace，未做归因"}}, {"case_id": "ex-04", "display_case_id": "ex-04", "display_input": "儿童退烧药一次吃多少？", "display_output": "今天天气不错，适合去公园散步，记得涂防晒。", "expected_output": "按年龄或体重说明退烧药用量，并提示遵医嘱。", "grade": "FAIL", "reason": "用户询问儿童退烧药一次吃多少，期望按年龄或体重说明用量并提示遵医嘱。Agent 回答为天气与散步建议，与问题完全无关，未提供任何退烧药用量信息，也未提示遵医嘱。准确度：0分，答非所问且无任何有效信息；相关性：0分，与用户意图完全无关；完整性：0分，expected_output 的核心要求（按年龄/体重说明用量、提示遵医嘱）全部未满足。综合为0分，属完全无关的否决项。", "scores": {"fused": {"score": 0.0, "reason": "用户询问儿童退烧药一次吃多少，期望按年龄或体重说明用量并提示遵医嘱。Agent 回答为天气与散步建议，与问题完全无关，未提供任何退烧药用量信息，也未提示遵医嘱。准确度：0分，答非所问且无任何有效信息；相关性：0分，与用户意图完全无关；完整性：0分，expected_output 的核心要求（按年龄/体重说明用量、提示遵医嘱）全部未满足。综合为0分，属完全无关的否决项。"}, "准确度": {"score": 0.0}, "相关性": {"score": 0.0}, "完整性": {"score": 0.0}}, "root_cause_display": "模拟样本无 trace，未做归因", "attribution": {"primary_issue_category": "未归因", "root_cause": "模拟样本无 trace，未做归因"}}, {"case_id": "ex-05", "display_case_id": "ex-05", "display_input": "水的沸点在标准大气压下是多少？", "display_output": "标准大气压下，水的沸点是 50 摄氏度。", "expected_output": "标准大气压下水的沸点是 100 摄氏度。", "grade": "POOR", "reason": "准确度：回答称标准大气压下水的沸点为50摄氏度，与常识及期望输出（100摄氏度）直接矛盾，属核心事实错误，给0分。相关性：回答围绕水的沸点这一主题，方向相关，但数值错误导致实质无效，给5分。完整性：仅给出一个错误数值，未提供正确信息，核心必答项（100摄氏度）完全未满足，给1分。总评：期望输出明确要求标准大气压下水的沸点为100摄氏度，Agent回答给出50摄氏度，核心要求完全未满足且为明显事实错误，综合分约1.0，属严重缺陷。", "scores": {"fused": {"score": 1.8, "reason": "准确度：回答称标准大气压下水的沸点为50摄氏度，与常识及期望输出（100摄氏度）直接矛盾，属核心事实错误，给0分。相关性：回答围绕水的沸点这一主题，方向相关，但数值错误导致实质无效，给5分。完整性：仅给出一个错误数值，未提供正确信息，核心必答项（100摄氏度）完全未满足，给1分。总评：期望输出明确要求标准大气压下水的沸点为100摄氏度，Agent回答给出50摄氏度，核心要求完全未满足且为明显事实错误，综合分约1.0，属严重缺陷。"}, "准确度": {"score": 0.0}, "相关性": {"score": 5.0}, "完整性": {"score": 1.0}}, "root_cause_display": "模拟样本无 trace，未做归因", "attribution": {"primary_issue_category": "未归因", "root_cause": "模拟样本无 trace，未做归因"}}, {"case_id": "ex-06", "display_case_id": "ex-06", "display_input": "怎么把照片里的红眼去掉？", "display_output": "可以。", "expected_output": "给出去除红眼的具体操作步骤。", "grade": "POOR", "reason": "用户问题明确要求给出「怎么把照片里的红眼去掉」的具体操作方法。期望输出要求给出去除红眼的具体操作步骤。Agent 回答仅为「可以。」，既没有提供任何操作步骤，也没有实质内容，属于对核心诉求的完全未满足。准确度维度：未提供任何可执行信息，几乎无有效内容，给1分。相关性维度：回答虽在语义上回应了「可以」，但未涉及去除红眼的具体方法，与用户意图关联极弱，给2分。完整性维度：期望输出要求的「具体操作步骤」完全缺失，核心检查点覆盖接近0，给0.5分。综合分=1.0*0.4+2.0*0.3+0.5*0.3=1.15，取1.0。总评：回答严重不完整，未满足用户意图及 expected_output 的核心要求。\n\n【失败摘要】Agent 仅回复「可以」，未给出任何去除红眼的具体操作步骤，核心意图完全未满足。", "scores": {"fused": {"score": 1.15, "reason": "用户问题明确要求给出「怎么把照片里的红眼去掉」的具体操作方法。期望输出要求给出去除红眼的具体操作步骤。Agent 回答仅为「可以。」，既没有提供任何操作步骤，也没有实质内容，属于对核心诉求的完全未满足。准确度维度：未提供任何可执行信息，几乎无有效内容，给1分。相关性维度：回答虽在语义上回应了「可以」，但未涉及去除红眼的具体方法，与用户意图关联极弱，给2分。完整性维度：期望输出要求的「具体操作步骤」完全缺失，核心检查点覆盖接近0，给0.5分。综合分=1.0*0.4+2.0*0.3+0.5*0.3=1.15，取1.0。总评：回答严重不完整，未满足用户意图及 expected_output 的核心要求。\n\n【失败摘要】Agent 仅回复「可以」，未给出任何去除红眼的具体操作步骤，核心意图完全未满足。"}, "准确度": {"score": 1.0}, "相关性": {"score": 2.0}, "完整性": {"score": 0.5}}, "root_cause_display": "模拟样本无 trace，未做归因", "attribution": {"primary_issue_category": "未归因", "root_cause": "模拟样本无 trace，未做归因"}}]</script>
+<script type="application/json" id="case-columns-data">[]</script>
+<script>
+var REPORT={};
+var CASES=[];
+var filteredCases=[];
+var currentPage=1;
+var PAGE_SIZE=10;
+var activeRootCause=null;
+var radarShowToday=true;
+var radarShowYesterday=true;
+var radarPoints=[];
+var trendPoints=[];
+
+function isVetoDim(c){return c&&(/^d0_/i.test(c.id)||/^D0/.test(c.id)||/安全/.test(c.name||''))}
+function fullScore(c){if(c&&typeof c.full_score==='number'&&c.full_score>0)return c.full_score;return isVetoDim(c)?1:2}
+function scoreColor(mean,c){var fs=fullScore(c);var r=mean/fs;if(r>=0.8)return'#16a34a';if(r>=0.6)return'#d97706';return'#dc2626'}
+/** dim_scores.score 已是报告 [0,1] 口径，按 0.8/0.6 取色，不用 0~2 的 fullScore(null)。 */
+function unitIntervalColor(score){var r=Number(score);if(isNaN(r))return'#9aa0b4';if(r>=0.8)return'#16a34a';if(r>=0.6)return'#d97706';return'#dc2626'}
+/** 满分率 → 分布条颜色：≥80% 绿（正常）/ ≥60% 黄（警戒）/ 其余红（异常）。 */
+function rateColor(ratePct){
+  if(ratePct==null||isNaN(Number(ratePct)))return'#9aa0b4';
+  var r=Number(ratePct);
+  if(r>=80)return'#16a34a';
+  if(r>=60)return'#d97706';
+  return'#dc2626';
+}
+function fmtNum(v,d){if(v==null||isNaN(v))return'—';return Number(v).toFixed(d==null?3:d)}
+function pct(n,d){if(!d||d===0)return'-';return(n/d*100).toFixed(1)+'%'}
+function truncateId(id){if(!id)return'-';var s=String(id);if(s.length<=9)return s;return s.slice(0,3)+'...'+s.slice(-3)}
+function truncateText(t,n){if(!t)return'-';var s=String(t);return s.length>n?s.slice(0,n)+'…':s}
+function escHtml(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function isUserIdLabel(t){
+  t=String(t||'').replace(/[:：]\s*$/,'').trim().toLowerCase();
+  return t==='用户id'||t==='userid'||t==='user_id'||t==='uid'||t==='adiu';
+}
+function sanitizeUserIdFields(root){
+  if(!root)return;
+  var nodes=root.querySelectorAll('dt,.label,.detail-label,th,strong,b');
+  for(var i=nodes.length-1;i>=0;i--){
+    if(!isUserIdLabel(nodes[i].textContent||''))continue;
+    var el=nodes[i],sib=el.nextElementSibling,parent=el.parentNode;
+    if(sib&&(sib.tagName==='DD'||sib.classList.contains('value')||sib.tagName==='TD')){
+      if(sib.parentNode)sib.parentNode.removeChild(sib);
+    }
+    if(parent)parent.removeChild(el);
+  }
+}
+function parseMaybeJson(raw){
+  if(raw==null)return null;
+  if(typeof raw==='object')return raw;
+  var s=String(raw).trim();
+  if(!s)return null;
+  if(s.charAt(0)==='{'||s.charAt(0)==='['){
+    try{return JSON.parse(s);}catch(e){return s;}
+  }
+  return s;
+}
+function extractCaseQuery(c){
+  if(!c)return '';
+  var d=String(c.display_input||'').trim();
+  if(d)return d;
+  var inp=parseMaybeJson(c.input);
+  if(inp&&typeof inp==='object'){
+    if(inp.query)return String(inp.query);
+    var rb=inp.request_body;
+    if(rb&&typeof rb==='object'&&rb.query)return String(rb.query);
+  }
+  return typeof inp==='string'?inp:'';
+}
+function extractCaseResult(c){
+  if(!c)return '';
+  var d=String(c.display_output||'').trim();
+  if(d)return d;
+  function fromObj(obj){
+    if(!obj||typeof obj!=='object')return '';
+    var keys=['result','response_text','displayText','text'];
+    for(var i=0;i<keys.length;i++){if(obj[keys[i]])return String(obj[keys[i]])}
+    var comp=obj.component;
+    if(comp&&typeof comp==='object'){
+      if(comp.displayText)return String(comp.displayText);
+      if(comp.text)return String(comp.text);
+    }
+    return '';
+  }
+  var fromOut=fromObj(parseMaybeJson(c.output));
+  if(fromOut)return fromOut;
+  var fromIn=fromObj(parseMaybeJson(c.input));
+  if(fromIn)return fromIn;
+  var out=parseMaybeJson(c.output);
+  return typeof out==='string'?out:'';
+}
+function looksLikeMarkdown(s){
+  var t=String(s||'');
+  return /(?:^|\n)\s{0,3}#{1,6}\s|(?:^|\n)\s{0,3}(?:[-*+]|\d+\.)\s|\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|(?:^|\n)\s*\|.+\||(?:^|\n)```/.test(t);
+}
+function renderMdInline(s){
+  s=escHtml(s);
+  s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/__([^_]+)__/g,'<strong>$1</strong>');
+  s=s.replace(/(^|[^\*])\*([^*]+)\*(?!\*)/g,'$1<em>$2</em>');
+  s=s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,function(_,label,url){
+    if(!/^https?:/i.test(url))return label;
+    // url 已随首行 escHtml(s) 整体转义，回调里再 escHtml 会把 &amp; 二次
+    // 转义成 &amp;amp;（带查询参数的链接跳转地址错误）。
+    return '<a href="'+url+'" target="_blank" rel="noopener">'+label+'</a>';
+  });
+  return s;
+}
+function renderMarkdown(src){
+  var text=String(src||'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  if(!looksLikeMarkdown(text)){
+    return '<div class="detail-text">'+escHtml(text)+'</div>';
+  }
+  var fences=[];
+  text=text.replace(/```[\t ]*([a-zA-Z0-9_-]+)?\n?([\s\S]*?)```/g,function(_,lang,body){
+    var i=fences.length;
+    fences.push('<pre class="detail-md-pre"><code>'+escHtml(String(body).replace(/\n$/,''))+'</code></pre>');
+    return '\n%%FENCE'+i+'%%\n';
+  });
+  var lines=text.split('\n');
+  var html='',inUl=false,inOl=false,inBq=false,inTbl=false,tblRows=[];
+  function closeLists(){
+    if(inUl){html+='</ul>';inUl=false}
+    if(inOl){html+='</ol>';inOl=false}
+    if(inBq){html+='</blockquote>';inBq=false}
+  }
+  function flushTbl(){
+    if(!inTbl)return;
+    html+='<table class="detail-md-table">';
+    tblRows.forEach(function(row,ri){
+      if(ri===1&&row.every(function(c){return /^:?-+:?$/.test(String(c).trim())}))return;
+      var tag=ri===0?'th':'td';
+      html+='<tr>';
+      row.forEach(function(c){html+='<'+tag+'>'+renderMdInline(String(c).trim())+'</'+tag+'>'});
+      html+='</tr>';
+    });
+    html+='</table>';
+    inTbl=false;tblRows=[];
+  }
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];
+    var fm=line.match(/^%%FENCE(\d+)%%$/);
+    if(fm){closeLists();flushTbl();html+=fences[Number(fm[1])]||'';continue;}
+    if(/^\s*\|/.test(line)){
+      closeLists();
+      inTbl=true;
+      tblRows.push(line.replace(/^\s*\|/,'').replace(/\|\s*$/,'').split('|'));
+      continue;
+    }
+    if(inTbl)flushTbl();
+    var hm=line.match(/^(#{1,6})\s+(.+)$/);
+    if(hm){closeLists();var lv=hm[1].length;html+='<h'+lv+' class="detail-md-h">'+renderMdInline(hm[2])+'</h'+lv+'>';continue;}
+    var ul=line.match(/^\s*[-*+]\s+(.+)$/);
+    if(ul){if(inOl){html+='</ol>';inOl=false}if(!inUl){html+='<ul>';inUl=true}html+='<li>'+renderMdInline(ul[1])+'</li>';continue;}
+    var ol=line.match(/^\s*\d+\.\s+(.+)$/);
+    if(ol){if(inUl){html+='</ul>';inUl=false}if(!inOl){html+='<ol>';inOl=true}html+='<li>'+renderMdInline(ol[1])+'</li>';continue;}
+    if(/^\s*>\s?/.test(line)){
+      if(inUl||inOl)closeLists();
+      if(!inBq){html+='<blockquote>';inBq=true}
+      html+='<p>'+renderMdInline(line.replace(/^\s*>\s?/,''))+'</p>';
+      continue;
+    }
+    if(/^\s*$/.test(line)){closeLists();continue;}
+    closeLists();
+    html+='<p>'+renderMdInline(line)+'</p>';
+  }
+  closeLists();flushTbl();
+  return '<div class="detail-md">'+html+'</div>';
+}
+function findCaseByKey(key){
+  key=String(key||'');
+  for(var i=0;i<CASES.length;i++){
+    if(CASES[i].case_id===key||CASES[i].trace_id===key||CASES[i].display_case_id===key)return CASES[i];
+  }
+  return null;
+}
+function caseDisplayId(c){
+  return String((c&&(c.trace_id||c.case_id||c.display_case_id))||'-');
+}
+function pickJudgeReason(c){
+  if(!c||!c.scores||typeof c.scores!=='object')return '';
+  // 优先键由插件经 REPORT.judge_reason_preferred_keys 透出；缺省仅通用键。
+  var report=window.REPORT||{};
+  var preferred=Array.isArray(report.judge_reason_preferred_keys)&&report.judge_reason_preferred_keys.length
+    ? report.judge_reason_preferred_keys : ['fused','综合质量'];
+  var i,sc,r;
+  for(i=0;i<preferred.length;i++){
+    sc=c.scores[preferred[i]];
+    if(sc&&typeof sc==='object'){
+      r=String(sc.reason||'').trim();
+      if(r)return r;
+    }
+  }
+  var best='';
+  var keys=Object.keys(c.scores);
+  for(i=0;i<keys.length;i++){
+    if(keys[i]==='fused')continue;
+    sc=c.scores[keys[i]];
+    if(!sc||typeof sc!=='object')continue;
+    r=String(sc.reason||'').trim();
+    if(r.length>best.length)best=r;
+  }
+  return best;
+}
+window.pickJudgeReason=pickJudgeReason;
+function buildBasicInfoHtml(c){
+  var did=caseDisplayId(c);
+  var html='<div class="detail-section"><div class="detail-section-title">基本信息</div><dl class="detail-kv">';
+  html+='<dt>用例ID</dt><dd>'+escHtml(did)+'</dd>';
+  if(c.trace_id&&c.case_id&&String(c.trace_id)!==String(c.case_id)){
+    html+='<dt>数据行ID</dt><dd class="muted">'+escHtml(c.case_id)+'</dd>';
+  }
+  var grade=c.grade||'';
+  if(grade){
+    var gc=grade==='EXCELLENT'||grade==='GOOD'?'#16a34a':grade==='ACCEPTABLE'?'#2563eb':'#dc2626';
+    html+='<dt>case状态</dt><dd><span class="grade-badge" style="background:'+gc+'20;color:'+gc+'">'+grade+'</span></dd>';
+  }else{
+    html+='<dt>case状态</dt><dd class="muted">-</dd>';
+  }
+  var fused=c.scores&&c.scores.fused&&c.scores.fused.score!=null?Number(c.scores.fused.score).toFixed(3):'-';
+  html+='<dt>综合得分</dt><dd style="font-weight:700;font-size:16px">'+fused+'</dd>';
+  var judgeReason=pickJudgeReason(c);
+  if(judgeReason){
+    html+='<dt>评分理由</dt><dd style="white-space:pre-wrap;line-height:1.55">'+escHtml(judgeReason)+'</dd>';
+  }
+  var turl=String(c.trace_url||'').trim();
+  if(turl){
+    html+='<dt>Trace链接</dt><dd><a class="trace-link" href="'+escHtml(turl)+'" target="_blank" rel="noopener">Langfuse ↗</a></dd>';
+  }else{
+    html+='<dt>Trace链接</dt><dd class="muted">-</dd>';
+  }
+  html+='</dl></div>';
+  return html;
+}
+function buildDimScoresHtml(c){
+  var criteria=REPORT.criteria||[];
+  if((!criteria.length&&!c.dim_scores)||!c.scores)return '';
+  var html='<div class="detail-section"><div class="detail-section-title">各维度评分</div>';
+  var any=false;
+  var covered={};
+  criteria.forEach(function(cr){
+    var sc=c.scores[cr.id];
+    if(!sc)return;
+    any=true;
+    if(cr.id)covered[cr.id]=true;
+    if(cr.name)covered[cr.name]=true;
+    var sv=sc.score!=null?Number(sc.score).toFixed(3):'—';
+    var col=sc.score!=null?scoreColor(sc.score,cr):'#9aa0b4';
+    var reason=sc.reason||'';
+    html+='<div class="detail-score-row"><span class="detail-score-name">'+escHtml(cr.name)+'</span><span class="detail-score-val" style="color:'+col+'">'+sv+'</span><span class="detail-score-reason">'+escHtml(reason)+'</span></div>';
+    if(sc.eval_failed){html+='<div style="padding:2px 0 4px 130px"><span class="grade-badge grade-fail">评测失败</span></div>'}
+    if(sc.judge){
+      var tl=sc.judge.triage_level||'';
+      var tc=tl==='good'?'#16a34a':tl==='minor_issue'||tl==='major'?'#d97706':tl==='severe_bad'||tl==='critical'?'#dc2626':'#9aa0b4';
+      html+='<div style="padding:2px 0 4px 130px;font-size:11px"><span style="display:inline-block;padding:1px 6px;border-radius:4px;background:'+tc+'18;color:'+tc+';font-weight:600;margin-right:6px">'+escHtml(tl)+'</span><span style="color:#6b7194">'+escHtml(sc.judge.triage_raw||'')+'</span></div>';
+    }
+    if(sc.attribution){
+      html+='<div style="padding:2px 0 6px 130px;font-size:11px;color:#4a5060">归因: '+escHtml(sc.attribution.root_cause||'')+' (置信度 '+(sc.attribution.confidence!=null?(sc.attribution.confidence*100).toFixed(0)+'%':'—')+')</div>';
+    }
+  });
+  // judge_json 维度展开行（Kafka 日报链路）：展示名 key，非 criterion id；
+  // raw_score 为原始量纲（如 expression 1-5 制），score 为报告 [0,1] 口径
+  if(Array.isArray(c.dim_scores)){
+    c.dim_scores.forEach(function(name){
+      if(covered[name])return;
+      var sc=c.scores[name];
+      if(!sc||typeof sc!=='object')return;
+      any=true;
+      var sv=sc.score!=null?Number(sc.score).toFixed(3):'—';
+      var col=sc.score!=null?unitIntervalColor(sc.score):'#9aa0b4';
+      var raw=sc.raw_score!=null?'（原始分 '+escHtml(String(sc.raw_score))+'）':'';
+      html+='<div class="detail-score-row"><span class="detail-score-name">'+escHtml(name)+'</span><span class="detail-score-val" style="color:'+col+'">'+sv+'</span><span class="detail-score-reason">'+escHtml(sc.reason||'')+raw+'</span></div>';
+    });
+  }
+  if(!any)return '';
+  html+='</div>';
+  return html;
+}
+function buildAttributionHtml(c){
+  if(!c.attribution||typeof c.attribution!=='object')return '';
+  var a=c.attribution;
+  // 归因总结：attribution_md（Markdown，缺失则不渲染）
+  // 取值回退链：顶层 attribution_md → raw_json.attribution_md → raw_json.metadata.attribution.attribution_md
+  var summaryMd='';
+  try{
+    var md=a.attribution_md;
+    if(typeof md!=='string'||!md.trim()){
+      var rj=a.raw_json;
+      if(rj&&typeof rj==='object'){
+        md=rj.attribution_md;
+        if((typeof md!=='string'||!md.trim())
+          &&rj.metadata&&typeof rj.metadata==='object'
+          &&rj.metadata.attribution&&typeof rj.metadata.attribution==='object'){
+          md=rj.metadata.attribution.attribution_md;
+        }
+      }
+    }
+    if(typeof md==='string'&&md.trim())summaryMd=md;
+  }catch(e){/* 取值路径异常静默降级：仅不渲染总结 */}
+  var html='<div class="detail-section"><div class="detail-section-title">用例归因</div>';
+  if(summaryMd)html+='<div class="detail-subtitle">归因总结</div>'+renderMarkdown(summaryMd);
+  html+='<div class="attr-fold-toggle" onclick="toggleAttributionDetail(this)"><span class="attr-fold-arrow">▶</span>详细归因数据</div>';
+  html+='<dl class="detail-kv attr-fold-body">';
+  // attribution_detail_json 字段（Kafka 日报链路）：category 优先，owner_domain 同源回退
+  var cat=a.category||a.owner_domain;
+  if(cat)html+='<dt>问题领域</dt><dd>'+escHtml(cat)+'</dd>';
+  if(a.primary_issue_layer)html+='<dt>问题层</dt><dd>'+escHtml(a.primary_issue_layer)+'</dd>';
+  if(a.primary_issue_detail)html+='<dt>归因推理</dt><dd style="white-space:pre-wrap">'+escHtml(a.primary_issue_detail)+'</dd>';
+  if(a.severity){
+    var sc=a.severity==='critical'?'#dc2626':a.severity==='major'?'#d97706':'#16a34a';
+    html+='<dt>严重程度</dt><dd><span style="color:'+sc+';font-weight:700">'+escHtml(a.severity)+'</span></dd>';
+  }
+  if(a.confidence!=null)html+='<dt>置信度</dt><dd>'+(a.confidence*100).toFixed(0)+'%</dd>';
+  if(a.triage_level){
+    var tc2=a.triage_level==='good'?'#16a34a':a.triage_level==='minor_issue'?'#d97706':'#dc2626';
+    html+='<dt>分级</dt><dd><span style="color:'+tc2+';font-weight:600">'+escHtml(a.triage_level)+'</span></dd>';
+  }
+  // 归因推翻场景：原分级 + 纠正分级（attribution_overridden 标量配对 bucket 字段）
+  if(a.original_triage_level)html+='<dt>原分级</dt><dd>'+escHtml(a.original_triage_level)+'</dd>';
+  if(a.corrected_triage_level)html+='<dt>纠正分级</dt><dd><span style="color:#d97706;font-weight:600">'+escHtml(a.corrected_triage_level)+'</span></dd>';
+  if(a.root_cause)html+='<dt>根因</dt><dd>'+escHtml(a.root_cause)+'</dd>';
+  if(a.owner_group)html+='<dt>责任团队</dt><dd>'+escHtml(a.owner_group)+'</dd>';
+  if(a.root_cause_chain)html+='<dt>根因链</dt><dd style="white-space:pre-wrap">'+escHtml(typeof a.root_cause_chain==='string'?a.root_cause_chain:JSON.stringify(a.root_cause_chain,null,2))+'</dd>';
+  if(a.improvement_suggestion)html+='<dt>改进建议</dt><dd style="white-space:pre-wrap">'+escHtml(a.improvement_suggestion)+'</dd>';
+  // 证据：JSON 数组字符串（evidence_raw）安全解析，逐条 pre-wrap；解析成功为数组（含空）不回退原文，解析失败按原文展示
+  if(a.evidence_raw){
+    var ev='',evSrc=a.evidence_raw,evArr=false;
+    try{
+      var parsed=typeof evSrc==='string'?JSON.parse(evSrc):evSrc;
+      if(parsed&&Array.isArray(parsed)){
+        evArr=true;
+        for(var ei=0;ei<parsed.length;ei++){
+          var item=parsed[ei];
+          if(item!=null&&String(item).trim())ev+=(ev?'\n':'')+escHtml(String(item));
+        }
+      }
+    }catch(e){ev=''}
+    if(!evArr&&!ev&&typeof evSrc==='string'&&evSrc.trim())ev=escHtml(evSrc);
+    if(ev)html+='<dt>证据</dt><dd style="white-space:pre-wrap">'+ev+'</dd>';
+  }
+  if(a.reasoning_raw)html+='<dt>推理原文</dt><dd style="white-space:pre-wrap;font-size:11px;color:#6b7194">'+escHtml(a.reasoning_raw)+'</dd>';
+  if(a.action_hint)html+='<dt>行动提示</dt><dd>'+escHtml(a.action_hint)+'</dd>';
+  if(a.is_eval_misjudge)html+='<dt>评测误判</dt><dd><span class="grade-badge grade-fail">是</span></dd>';
+  if(a.needs_human_review)html+='<dt>人工复核</dt><dd><span class="grade-badge grade-fail">需要</span></dd>';
+  if(a.failure_modes){
+    var fm=Array.isArray(a.failure_modes)?a.failure_modes.join(', '):String(a.failure_modes);
+    html+='<dt>失败模式</dt><dd>'+escHtml(fm)+'</dd>';
+  }
+  if(a.summary)html+='<dt>摘要</dt><dd style="white-space:pre-wrap">'+escHtml(a.summary)+'</dd>';
+  html+='</dl></div>';
+  return html;
+}
+function toggleAttributionDetail(el){
+  el.classList.toggle('open');
+  var body=el.nextElementSibling;
+  if(body&&body.classList.contains('attr-fold-body'))body.classList.toggle('open');
+}
+function traceDetailHtml(c){
+  var q=extractCaseQuery(c);
+  var result=extractCaseResult(c);
+  return '<div class="trace-dropdown">'
+    +buildBasicInfoHtml(c)
+    +'<div class="detail-section"><div class="detail-section-title">输入</div><div class="detail-text">'+(q?escHtml(q):'-')+'</div></div>'
+    +'<div class="detail-section"><div class="detail-section-title">输出</div>'
+    +(result?renderMarkdown(result):'<div class="detail-text muted">-</div>')
+    +'</div>'
+    +buildDimScoresHtml(c)
+    +buildAttributionHtml(c)
+    +'</div>';
+}
+function toggleTraceDetail(el,key){
+  var td=el&&el.closest?el.closest('td'):null;
+  var row=td&&td.parentElement;
+  if(!row)return;
+  hideHoverTip();
+  var next=row.nextElementSibling;
+  if(next&&next.classList.contains('trace-detail-row')){
+    next.parentNode.removeChild(next);
+    if(el)el.classList.remove('open');
+    return;
+  }
+  var openRows=document.querySelectorAll('.trace-detail-row');
+  for(var i=0;i<openRows.length;i++){if(openRows[i].parentNode)openRows[i].parentNode.removeChild(openRows[i])}
+  var opens=document.querySelectorAll('.query-toggle.open');
+  for(var j=0;j<opens.length;j++)opens[j].classList.remove('open');
+  var c=findCaseByKey(key);
+  if(!c){
+    var siblings=[];
+    var sib=row.parentNode?row.parentNode.children:[];
+    for(var k=0;k<sib.length;k++){if(!sib[k].classList.contains('trace-detail-row'))siblings.push(sib[k])}
+    var pageIdx=siblings.indexOf(row);
+    var start=(currentPage-1)*PAGE_SIZE;
+    c=filteredCases[start+pageIdx]||null;
+  }
+  if(!c)return;
+  var detail=document.createElement('tr');
+  detail.className='trace-detail-row';
+  var cell=document.createElement('td');
+  cell.colSpan=row.children.length||7;
+  cell.innerHTML=traceDetailHtml(c);
+  detail.appendChild(cell);
+  // 与 openDetail 弹窗路径（body.innerHTML 后 sanitizeUserIdFields(modal)）一致：
+  // 内联详情面板同样移除「用户id/userid/uid/adiu」标签及对应值，防隐私泄露。
+  sanitizeUserIdFields(detail);
+  if(row.parentNode)row.parentNode.insertBefore(detail,row.nextSibling);
+  if(el)el.classList.add('open');
+}
+
+function init(){
+  try{REPORT=JSON.parse(document.getElementById('report-data').textContent||'{}')}catch(e){console.error('report-data parse',e);REPORT={}}
+  try{CASES=JSON.parse(document.getElementById('cases-data').textContent||'[]')}catch(e){console.error('cases-data parse',e);CASES=[]}
+  if(!Array.isArray(CASES))CASES=[];
+
+  try{renderHeader()}catch(e){console.error('renderHeader',e)}
+  try{renderInsightBanner()}catch(e){console.error('renderInsightBanner',e)}
+  try{renderKPI()}catch(e){console.error('renderKPI',e)}
+  try{renderPerfKPI()}catch(e){console.error('renderPerfKPI',e)}
+  try{renderGrades()}catch(e){console.error('renderGrades',e)}
+  try{renderTrend()}catch(e){console.error('renderTrend',e)}
+  try{renderDimTable()}catch(e){console.error('renderDimTable',e)}
+  try{initRadar()}catch(e){console.error('initRadar',e)}
+  try{renderWaterfallDelta()}catch(e){console.error('renderWaterfallDelta',e)}
+  try{renderHeatmap()}catch(e){console.error('renderHeatmap',e)}
+  try{renderAttribution()}catch(e){console.error('renderAttribution',e)}
+  try{renderTopProblems()}catch(e){console.error('renderTopProblems',e)}
+  try{initCaseSection()}catch(e){console.error('initCaseSection',e)}
+  try{initHoverTips()}catch(e){console.error('initHoverTips',e)}
+  // 必须最后执行：章节导航按已渲染的 .sec 生成，空数据栏位不会出现在导航里
+  try{initSectionNav()}catch(e){console.error('initSectionNav',e)}
+}
+
+/**
+ * 章节导航：扫描已渲染的 ``.sec`` 标题生成置顶锚点 chips + 滚动高亮。
+ * 少于 2 个章节时保持 hidden（单栏报告不需要导航）。
+ */
+function initSectionNav(){
+  var nav=document.getElementById('report-nav');
+  var inner=document.getElementById('report-nav-inner');
+  if(!nav||!inner)return;
+  var secs=[].slice.call(document.querySelectorAll('.sec'));
+  if(secs.length<2){nav.hidden=true;return}
+  var links=[];
+  inner.innerHTML='';
+  secs.forEach(function(el,i){
+    if(!el.id)el.id='sec-'+i;
+    var a=document.createElement('a');
+    a.href='#'+el.id;
+    a.textContent=el.textContent.trim();
+    inner.appendChild(a);
+    links.push({a:a,el:el});
+  });
+  nav.hidden=false;
+  function docTop(el){return el.getBoundingClientRect().top+window.pageYOffset}
+  function sync(){
+    var probe=window.pageYOffset+nav.offsetHeight+28;
+    var active=links[0];
+    links.forEach(function(l){if(docTop(l.el)<=probe)active=l});
+    links.forEach(function(l){
+      if(l===active)l.a.classList.add('active');else l.a.classList.remove('active');
+    });
+  }
+  window.addEventListener('scroll',sync,{passive:true});
+  window.addEventListener('resize',sync);
+  sync();
+}
+
+function renderHeader(){
+  var envEl=document.getElementById('meta-env');
+  var svc=REPORT.service_name||REPORT.business_agent_name||REPORT.benchmark_name||'—';
+  if(envEl)envEl.textContent=String(svc).toUpperCase();
+  var sampEl=document.getElementById('meta-samples');
+  if(sampEl)sampEl.textContent=(REPORT.total_samples!=null?REPORT.total_samples:'—')+' 样本';
+  var dateEl=document.getElementById('meta-date');
+  if(dateEl) dateEl.textContent=resolveReportDate();
+  var ruleUrl=String(REPORT.rule_link_url||'').trim();
+  var slot=document.querySelector('.rule-link-slot');
+  if(slot){
+    if(ruleUrl){
+      var a=document.createElement('a');
+      a.className='rule-link';
+      a.href=ruleUrl;
+      a.target='_blank';
+      a.rel='noopener';
+      a.textContent='评分规则 ↗';
+      slot.replaceWith(a);
+    }
+  }
+}
+
+/** 报告日期槽位：优先 REPORT.report_date，其次 run_id 中的 yyyymmdd，禁止用本地今天。 */
+function resolveReportDate(){
+  var explicit=REPORT.report_date||REPORT.report_day||REPORT.date;
+  if(explicit) return String(explicit).slice(0,10);
+  var rid=String(REPORT.run_id||'');
+  var m=rid.match(/(20\d{2})(\d{2})(\d{2})/);
+  if(m) return m[1]+'-'+m[2]+'-'+m[3];
+  return '—';
+}
+
+function mdBold(s){return String(s||'').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}
+/** 模型占位文案（数据不足/未知等）视为无法分析，不渲染该指标格。 */
+function isRenderableMetric(v){
+  if(v==null)return false;
+  var s=String(v).trim();
+  if(!s)return false;
+  var low=s.toLowerCase().replace(/\s+/g,'');
+  if(low==='-'||low==='—'||low==='–'||low==='n/a'||low==='na'||low==='null'||low==='none')return false;
+  if(/数据不足|无法分析|无法计算|未知|暂无|不适用/.test(s))return false;
+  return true;
+}
+function renderInsightBanner(){
+  var box=document.getElementById('insight-section');
+  if(!box)return;
+  var s=REPORT.insight_summary;
+  if(s&&(s.conclusion||(s.bullets&&s.bullets.length)||s.action)){
+    var html='<div class="summary-card"><h3>今日摘要</h3>';
+    if(s.conclusion)html+='<p class="summary-conclusion">'+mdBold(escHtml(s.conclusion))+'</p>';
+    if(s.bullets&&s.bullets.length){
+      html+='<ul class="summary-bullets">';
+      s.bullets.forEach(function(b){html+='<li>'+mdBold(escHtml(b))+'</li>'});
+      html+='</ul>';
+    }
+    if(s.action)html+='<div class="summary-action">'+mdBold(escHtml(s.action))+'</div>';
+    html+='</div>';
+    box.innerHTML=html;
+    return;
+  }
+  var txt=REPORT.insight_text;
+  if(!txt){box.innerHTML='';return}
+  box.innerHTML='<div class="insight-banner">💡 '+mdBold(escHtml(txt))+'</div>';
+}
+function renderTopProblems(){
+  var box=document.getElementById('top-problems-section');
+  if(!box)return;
+  var list=REPORT.top_problems;
+  if(!list||!list.length){box.innerHTML='';return}
+  var html='<div class="sec">Top 问题深度剖析</div><div class="problem-stack">';
+  list.forEach(function(p,i){
+    var rank=p.rank!=null?p.rank:(i+1);
+    var cls=rank===2?' p1':(rank>=3?' p2':'');
+    var trend=p.trend||'';
+    var trendCls=/好转|下降|减少|回升/.test(trend)?' stable':'';
+    html+='<div class="problem-card'+cls+'">';
+    html+='<div class="problem-header"><span class="problem-rank">TOP '+escHtml(String(rank))+'</span>';
+    html+='<span class="problem-name">'+escHtml(p.name||'')+'</span>';
+    if(trend)html+='<span class="problem-trend'+trendCls+'">'+escHtml(trend)+'</span>';
+    html+='</div><div class="problem-stats">';
+    if(p.affected_cases!=null&&p.affected_cases!==''&&!isNaN(Number(p.affected_cases)))html+='<div class="problem-stat"><span class="num">'+escHtml(String(p.affected_cases))+'</span><span class="lbl">影响用例</span></div>';
+    if(isRenderableMetric(p.score_drag))html+='<div class="problem-stat"><span class="num neg">'+escHtml(String(p.score_drag))+'</span><span class="lbl">分数拖累</span></div>';
+    if(isRenderableMetric(p.share_pct))html+='<div class="problem-stat"><span class="num">'+escHtml(String(p.share_pct))+'</span><span class="lbl">归因占比</span></div>';
+    if(isRenderableMetric(p.impacted_dims))html+='<div class="problem-stat"><span class="num">'+escHtml(String(p.impacted_dims))+'</span><span class="lbl">主要波及维度</span></div>';
+    html+='</div>';
+    if(p.chain&&p.chain.length){
+      html+='<div class="problem-subtitle">根因链路</div><div class="rc-chain">';
+      p.chain.forEach(function(step,si){
+        if(si)html+='<div class="rc-chain-arrow">→</div>';
+        var hl=si===p.chain.length-1?' highlight':'';
+        html+='<div class="rc-chain-step'+hl+'">'+escHtml(step)+'</div>';
+      });
+      html+='</div>';
+    }
+    if(p.typical_case_id||p.typical_case_desc){
+      html+='<div class="problem-case"><span class="label">典型案例</span>';
+      if(p.typical_case_id)html+='#'+escHtml(String(p.typical_case_id).replace(/^#/,''))+' ';
+      if(p.typical_case_desc)html+=escHtml(p.typical_case_desc);
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+  box.innerHTML=html;
+}
+
+/** 取 trend_7d 倒数第二日（昨日）指标；无则 null。 */
+function yesterdayTrendValue(key){
+  var t=REPORT.trend_7d;
+  if(!t||!Array.isArray(t.dates)||t.dates.length<2)return null;
+  var arr=t[key];
+  if(!Array.isArray(arr)||arr.length<2)return null;
+  var v=arr[arr.length-2];
+  if(v==null||v===''||isNaN(Number(v)))return null;
+  return Number(v);
+}
+
+/** 毫秒 → 可读耗时（≥1s 走秒，否则整毫秒）。 */
+function fmtDurationMs(ms){
+  if(ms==null||isNaN(Number(ms)))return '—';
+  var v=Number(ms);
+  return v>=1000?(v/1000).toFixed(v>=10000?1:2)+'s':Math.round(v)+'ms';
+}
+
+/** token 数 → 可读量级（≥1000 走 K）。 */
+function fmtTokens(n){
+  if(n==null||isNaN(Number(n)))return '—';
+  var v=Number(n);
+  return v>=1000?(v/1000).toFixed(1)+'K':String(Math.round(v));
+}
+
+/**
+ * 相对昨日变化：无数据或无变化 → {html:'-',cls:'flat'}；
+ * 上升绿 / 下降红。quantity=变化量，ratio=变化比例（昨日为 0 时比例为 -）。
+ * mode: 'score' | 'rate' | 'count' | 'ms' | 'token' | 'rounds'
+ * lowerIsBetter: 延迟 / Token 等「越小越好」指标，上升标红、下降标绿。
+ */
+function formatVsYesterday(today, yesterday, mode, lowerIsBetter){
+  if(today==null||yesterday==null||isNaN(Number(today))||isNaN(Number(yesterday))){
+    return {html:'-',cls:'flat'};
+  }
+  var t=Number(today);var y=Number(yesterday);var delta=t-y;
+  if(Math.abs(delta)<1e-9)return {html:'-',cls:'flat'};
+  var up=delta>0;var arrow=up?'↑':'↓';var sgn=up?'+':'-';var mag=Math.abs(delta);
+  var cls=(lowerIsBetter?!up:up)?'up':'down';
+  var qty;
+  if(mode==='count')qty=sgn+String(Math.round(mag));
+  else if(mode==='rate')qty=sgn+mag.toFixed(1)+'pp';
+  else if(mode==='ms')qty=sgn+fmtDurationMs(mag);
+  else if(mode==='token')qty=sgn+fmtTokens(mag);
+  else if(mode==='rounds')qty=sgn+mag.toFixed(2);
+  else qty=sgn+mag.toFixed(3);
+  var ratio;
+  if(Math.abs(y)<1e-9)ratio='-';
+  else ratio=sgn+(mag/Math.abs(y)*100).toFixed(1)+'%';
+  return {html:arrow+' '+qty+' ('+ratio+')',cls:cls};
+}
+
+function renderKPI(){
+  var grid=document.getElementById('kpi-grid');
+  if(!grid)return;
+  var fs=REPORT.final_score;
+  var ts=REPORT.total_samples||0;
+  var succ=REPORT.total_success!=null?REPORT.total_success:0;
+  var gd=REPORT.grade_distribution||{};
+  var graded=0;var eg=0;var pf=0;
+  ['EXCELLENT','GOOD','ACCEPTABLE','POOR','FAIL'].forEach(function(k){var v=gd[k]||0;graded+=v;if(k==='EXCELLENT'||k==='GOOD'||k==='ACCEPTABLE')eg+=v;if(k==='POOR'||k==='FAIL')pf+=v});
+  var satRate=graded>0?(eg/graded*100):null;
+  var failRate=graded>0?(pf/graded*100):null;
+  var succRate=ts>0?(succ/ts*100):null;
+  var dScore=formatVsYesterday(fs!=null?Number(fs):null,yesterdayTrendValue('fused_avg'),'score');
+  var dSucc=formatVsYesterday(succRate,yesterdayTrendValue('eval_success_rate'),'rate');
+  var dSat=formatVsYesterday(satRate,yesterdayTrendValue('task_satisfaction_rate'),'rate');
+  var dFail=formatVsYesterday(failRate,yesterdayTrendValue('poor_fail_rate'),'rate');
+  var fullMark=REPORT.score_full_mark!=null&&!isNaN(Number(REPORT.score_full_mark))?Number(REPORT.score_full_mark):2.0;
+  var cards=[
+    {label:'综合得分',value:fs!=null?Number(fs).toFixed(3):'-',sub:'满分 '+fullMark.toFixed(1),accent:'#0f6e6a',delta:dScore},
+    {label:'任务完成率',value:succRate!=null?succRate.toFixed(1)+'%':'-',sub:succ+' / '+ts+' 评测成功',accent:'#16a34a',delta:dSucc},
+    {label:'任务满足率',value:satRate!=null?satRate.toFixed(1)+'%':'-',sub:'Excellent+Good+Acceptable',accent:'#2563eb',delta:dSat},
+    {label:'不合格率',value:failRate!=null?failRate.toFixed(1)+'%':'-',sub:(pf)+' 例',accent:'#dc2626',delta:dFail}
+  ];
+  grid.innerHTML=cards.map(kpiCardHtml).join('');
+}
+
+/** KPI 卡片 HTML（效果指标 / 性能 & 效率共用；compact=小号数值）。 */
+function kpiCardHtml(c){
+  var d=c.delta||{html:'-',cls:'flat'};
+  var valCls='kpi-value'+(c.compact?' compact':'');
+  return '<div class="kpi" style="--accent:'+c.accent+'"><div class="kpi-label">'+c.label+'</div><div class="'+valCls+'">'+c.value+'</div><div class="kpi-sub">'+c.sub+'</div><div class="kpi-delta '+(d.cls||'flat')+'">'+d.html+'</div></div>';
+}
+
+/**
+ * 性能 & 效率 KPI 栏：延迟 / TTFT / Token / ReAct 轮次。
+ * 每张卡片只在对应指标有样本时出现；整栏无数据则不渲染标题与容器。
+ */
+function renderPerfKPI(){
+  var sec=document.getElementById('perf-section');
+  if(!sec)return;
+  sec.innerHTML='';
+  var p=REPORT.performance_metrics;
+  if(!p||typeof p!=='object')return;
+  var cards=[];
+  var lat=perfSection(p,'latency');
+  if(lat){
+    cards.push({label:'P50 延迟',value:fmtDurationMs(lat.p50_ms),compact:true,
+      sub:'P99 '+fmtDurationMs(lat.p99_ms)+' · '+lat.sample_count+' 样本',accent:'#d97706',
+      delta:formatVsYesterday(lat.p50_ms,yesterdayTrendValue('latency_p50_ms'),'ms',true)});
+  }
+  var ttft=perfSection(p,'ttft');
+  if(ttft){
+    cards.push({label:'TTFT P50',value:fmtDurationMs(ttft.p50_ms),compact:true,
+      sub:'P99 '+fmtDurationMs(ttft.p99_ms)+' · '+ttft.sample_count+' 样本',accent:'#ea580c',
+      delta:formatVsYesterday(ttft.p50_ms,yesterdayTrendValue('ttft_p50_ms'),'ms',true)});
+  }
+  var tk=perfSection(p,'tokens');
+  if(tk){
+    cards.push({label:'Token / 请求',value:fmtTokens(tk.avg_total),compact:true,
+      sub:'Prompt '+fmtTokens(tk.avg_input)+' · 生成 '+fmtTokens(tk.avg_output),accent:'#3d6b8a',
+      delta:formatVsYesterday(tk.avg_total,yesterdayTrendValue('token_avg'),'token',true)});
+  }
+  var react=perfSection(p,'react');
+  if(react&&react.avg_rounds!=null){
+    cards.push({label:'ReAct 均轮次',value:Number(react.avg_rounds).toFixed(2),compact:true,
+      sub:react.sample_count+' 次调用',accent:'#2563eb',
+      delta:formatVsYesterday(react.avg_rounds,yesterdayTrendValue('react_avg_rounds'),'rounds',true)});
+  }
+  if(!cards.length)return;
+  sec.innerHTML='<div class="sec">性能 &amp; 效率</div><div class="kpi-grid">'+cards.map(kpiCardHtml).join('')+'</div>';
+}
+
+/** 取 performance_metrics 某段；无样本（sample_count<=0）视为无数据。 */
+function perfSection(perf,key){
+  var s=perf&&perf[key];
+  if(!s||typeof s!=='object')return null;
+  if(!(Number(s.sample_count)>0))return null;
+  return s;
+}
+
+function renderGrades(){
+  var sec=document.getElementById('grades-section');
+  if(!sec)return;
+  var gd=REPORT.grade_distribution;
+  if(!gd||typeof gd!=='object'){sec.innerHTML='';return}
+  var graded=0;['EXCELLENT','GOOD','ACCEPTABLE','POOR','FAIL'].forEach(function(k){graded+=(gd[k]||0)});
+  if(graded===0&&!gd.EXCELLENT&&!gd.GOOD&&!gd.ACCEPTABLE&&!gd.POOR&&!gd.FAIL){sec.innerHTML='';return}
+  var ygd=REPORT.yesterday_grade_distribution||{};
+  var hasY=ygd&&typeof ygd==='object'&&Object.keys(ygd).length>0;
+  var levels=[
+    {k:'EXCELLENT',color:'#16a34a'},
+    {k:'GOOD',color:'#16a34a'},
+    {k:'ACCEPTABLE',color:'#2563eb'},
+    {k:'POOR',color:'#dc2626'},
+    {k:'FAIL',color:'#dc2626'}
+  ];
+  var html='<div class="sec">档位分布</div><div class="grades">';
+  levels.forEach(function(l){
+    var cnt=Math.round(Number(gd[l.k])||0);
+    var p=graded>0?(cnt/graded*100).toFixed(1)+'%':'0.0%';
+    var yCnt=hasY?Math.round(Number(ygd[l.k])||0):null;
+    var d=hasY?formatVsYesterday(cnt,yCnt,'count'):{html:'-',cls:'flat'};
+    html+='<div class="gc" style="--gc-accent:'+l.color+'"><div class="gc-name">'+l.k+'</div><div class="gc-count">'+cnt+'</div><div class="gc-pct">'+p+'</div><div class="grade-delta '+(d.cls||'flat')+'">'+d.html+'</div></div>';
+  });
+  html+='</div>';
+  sec.innerHTML=html;
+}
+
+/** 趋势序列是否至少有一个有效点（全 null → 该图不渲染）。 */
+function trendHasData(t,key){
+  var arr=t&&t[key];
+  if(!Array.isArray(arr))return false;
+  for(var i=0;i<arr.length;i++){
+    if(arr[i]!=null&&arr[i]!==''&&!isNaN(Number(arr[i])))return true;
+  }
+  return false;
+}
+
+function renderTrend(){
+  var sec=document.getElementById('trend-section');
+  if(!sec)return;
+  var t=REPORT.trend_7d;
+  if(!t||!t.dates||!t.dates.length){sec.innerHTML='';return}
+  var html='<div class="sec">近 7 天趋势</div><div class="card"><div class="chart-box" id="trend-chart-box"><div class="chart-tooltip" id="trend-tooltip"></div></div><div class="radar-legend"><div class="radar-legend-item"><span class="legend-line" style="background:#0f6e6a"></span>综合得分</div><div class="radar-legend-item"><span class="legend-line" style="background:repeating-linear-gradient(90deg,#1f7a4d 0 5px,transparent 5px 8px)"></span>优良率%</div></div></div>';
+  var hasLatency=trendHasData(t,'latency_p50_ms');
+  var hasReact=trendHasData(t,'react_avg_rounds');
+  var hasToken=trendHasData(t,'token_avg');
+  var extras=[];
+  if(hasLatency||hasReact){
+    var perfTitle=hasReact?(hasLatency?'延迟 &amp; ReAct 轮次':'ReAct 轮次'):'延迟';
+    var perfLegend='<div class="radar-legend">';
+    if(hasLatency)perfLegend+='<div class="radar-legend-item"><span class="legend-line" style="background:#d97706"></span>P50 延迟(s)</div>';
+    if(hasReact)perfLegend+='<div class="radar-legend-item"><span class="legend-line" style="background:repeating-linear-gradient(90deg,#2563eb 0 5px,transparent 5px 8px)"></span>ReAct 轮次</div>';
+    perfLegend+='</div>';
+    extras.push('<div class="card"><div class="trend-card-title">'+perfTitle+'</div><div class="chart-box short" id="perf-trend-box"><div class="chart-tooltip" id="perf-trend-tooltip"></div></div>'+perfLegend+'</div>');
+  }
+  if(hasToken){
+    extras.push('<div class="card"><div class="trend-card-title">Token / 请求</div><div class="chart-box short" id="token-trend-box"><div class="chart-tooltip" id="token-trend-tooltip"></div></div></div>');
+  }
+  if(extras.length){
+    html+='<div class="trend-row'+(extras.length===1?' single':'')+'">'+extras.join('')+'</div>';
+  }
+  sec.innerHTML=html;
+  setTimeout(function(){
+    try{drawTrendChart()}catch(e){console.error('drawTrendChart',e)}
+    try{drawPerfTrendChart()}catch(e){console.error('drawPerfTrendChart',e)}
+    try{drawTokenTrendChart()}catch(e){console.error('drawTokenTrendChart',e)}
+  },0);
+}
+
+/** 建立（或重建）图表 canvas 并返回绘制上下文。 */
+function setupChartCanvas(boxId,tooltipId,height){
+  var box=document.getElementById(boxId);
+  if(!box)return null;
+  var tooltip=document.getElementById(tooltipId);
+  var old=box.querySelector('canvas');
+  if(old)box.removeChild(old);
+  var canvas=document.createElement('canvas');
+  if(tooltip)box.insertBefore(canvas,tooltip);else box.appendChild(canvas);
+  var dpr=window.devicePixelRatio||1;
+  var w=box.clientWidth;
+  canvas.width=w*dpr;
+  canvas.height=height*dpr;
+  canvas.style.width=w+'px';
+  canvas.style.height=height+'px';
+  var ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.font='11px -apple-system,"SF Pro Text",sans-serif';
+  return {canvas:canvas,ctx:ctx,tooltip:tooltip,w:w,h:height};
+}
+
+/** 四等分网格的候选刻度（×10^k），保证轴标签是整齐数字。 */
+var AXIS_NICE_STEPS=[1,1.5,2,2.5,3,4,5,6,8,10];
+
+/** 序列上界：四等分后每格取整齐刻度；全空时回退 fallback。 */
+function axisMax(values,fallback){
+  var mx=0;
+  (values||[]).forEach(function(v){
+    var n=Number(v);
+    if(v!=null&&v!==''&&!isNaN(n)&&n>mx)mx=n;
+  });
+  if(mx<=0)return fallback||1;
+  var raw=mx*1.02/4;
+  var mag=Math.pow(10,Math.floor(Math.log(raw)/Math.LN10));
+  for(var i=0;i<AXIS_NICE_STEPS.length;i++){
+    var step=AXIS_NICE_STEPS[i]*mag;
+    if(step>=raw)return step*4;
+  }
+  return raw*4;
+}
+
+/** 图表色板：canvas 读不到 CSS 变量，此处与 :root 令牌保持同值。 */
+var CHART={grid:'#efe8d8',label:'#9a8f80',brand:'#0f6e6a',good:'#1f7a4d',warn:'#9a6412',info:'#2c5278',violet:'#3d6b8a'};
+
+/** 4 等分横向虚线网格（弱化到不与数据线竞争视觉）。 */
+function drawGridLines(ctx,plot){
+  ctx.save();ctx.strokeStyle=CHART.grid;ctx.lineWidth=1;ctx.setLineDash([3,4]);
+  for(var g=0;g<=4;g++){
+    var gy=Math.round(plot.top+plot.h-plot.h*(g/4))+.5;
+    ctx.beginPath();ctx.moveTo(plot.left,gy);ctx.lineTo(plot.left+plot.w,gy);ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function hexToRgba(hex,alpha){
+  var h=String(hex).replace('#','');
+  if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  var n=parseInt(h,16);
+  return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+alpha+')';
+}
+
+/** 折线下方渐变面积（按连续段分别填充，跳过 null 断点）。 */
+function fillLineArea(ctx,segments,baselineY,color){
+  segments.forEach(function(seg){
+    if(seg.length<2)return;
+    var top=seg.reduce(function(m,p){return Math.min(m,p.y)},Infinity);
+    var grad=ctx.createLinearGradient(0,top,0,baselineY);
+    grad.addColorStop(0,hexToRgba(color,.16));
+    grad.addColorStop(1,hexToRgba(color,0));
+    ctx.save();ctx.beginPath();
+    ctx.moveTo(seg[0].x,baselineY);
+    seg.forEach(function(p){ctx.lineTo(p.x,p.y)});
+    ctx.lineTo(seg[seg.length-1].x,baselineY);
+    ctx.closePath();ctx.fillStyle=grad;ctx.fill();ctx.restore();
+  });
+}
+
+/** 顶部圆角柱；``roundRect`` 不可用时退化为直角路径。 */
+function traceRoundedBar(ctx,x,y,w,h,r){
+  var rr=Math.max(Math.min(r,w/2,h),0);
+  ctx.beginPath();
+  if(typeof ctx.roundRect==='function'){ctx.roundRect(x,y,w,h,[rr,rr,0,0]);return}
+  ctx.moveTo(x,y+h);ctx.lineTo(x,y+rr);
+  ctx.quadraticCurveTo(x,y,x+rr,y);
+  ctx.lineTo(x+w-rr,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+rr);
+  ctx.lineTo(x+w,y+h);ctx.closePath();
+}
+
+/** 最近点命中即显示 tooltip（≤8px），否则隐藏。 */
+function bindChartTooltip(chart,points){
+  var canvas=chart.canvas;var tooltip=chart.tooltip;
+  if(!tooltip)return;
+  canvas.onmousemove=function(e){
+    var rect=canvas.getBoundingClientRect();
+    var mx=e.clientX-rect.left;var my=e.clientY-rect.top;
+    var best=null;var bestD=Infinity;
+    points.forEach(function(p){
+      var dx=p.x-mx;var dy=p.y-my;var d=Math.sqrt(dx*dx+dy*dy);
+      if(d<bestD){bestD=d;best=p}
+    });
+    if(best&&bestD<=(best.hit||8)){
+      tooltip.style.display='block';
+      tooltip.style.left=(best.x+10)+'px';
+      tooltip.style.top=Math.max(best.y-28,0)+'px';
+      tooltip.textContent=best.text;
+    }else{tooltip.style.display='none'}
+  };
+  canvas.onmouseleave=function(){tooltip.style.display='none'};
+}
+
+/**
+ * 延迟 & ReAct 轮次折线：左轴延迟（秒），右轴 ReAct 轮次。
+ * 任一序列全空则不画该条线与对应轴（ReAct 数据缺失时只保留延迟）。
+ */
+function drawPerfTrendChart(){
+  var t=REPORT.trend_7d;
+  if(!t||!t.dates||!t.dates.length)return;
+  var chart=setupChartCanvas('perf-trend-box','perf-trend-tooltip',210);
+  if(!chart)return;
+  var ctx=chart.ctx;var w=chart.w;var h=chart.h;
+  var latencySec=trendHasData(t,'latency_p50_ms')
+    ?t.latency_p50_ms.map(function(v){return (v==null||v===''||isNaN(Number(v)))?null:Number(v)/1000})
+    :null;
+  var react=trendHasData(t,'react_avg_rounds')?t.react_avg_rounds:null;
+  if(!latencySec&&!react)return;
+  var pad={t:20,r:react?52:20,b:32,l:latencySec?46:20};
+  var cw=w-pad.l-pad.r;var ch=h-pad.t-pad.b;
+  var dates=t.dates;var n=dates.length;
+  var xStep=n>1?cw/(n-1):cw;
+  function xPos(i){return pad.l+(n>1?i*xStep:cw/2)}
+  var latMax=axisMax(latencySec,1);
+  var reactMax=axisMax(react,1);
+
+  drawGridLines(ctx,{left:pad.l,top:pad.t,w:cw,h:ch});
+  ctx.fillStyle=CHART.label;ctx.textBaseline='middle';
+  if(latencySec){
+    ctx.textAlign='right';
+    for(var gl=0;gl<=4;gl++){
+      ctx.fillText((latMax*gl/4).toFixed(1)+'s',pad.l-8,pad.t+ch-ch*(gl/4));
+    }
+  }
+  if(react){
+    ctx.textAlign='left';
+    for(var gr=0;gr<=4;gr++){
+      ctx.fillText((reactMax*gr/4).toFixed(1),w-pad.r+8,pad.t+ch-ch*(gr/4));
+    }
+  }
+  ctx.textAlign='center';ctx.textBaseline='top';
+  dates.forEach(function(d,i){ctx.fillText(d,xPos(i),h-pad.b+10)});
+
+  var points=[];
+  function plot(data,maxV,color,dash,fmt,area){
+    if(!data)return;
+    var segments=[];var seg=null;
+    data.forEach(function(v,i){
+      if(v==null||v===''||isNaN(Number(v))){seg=null;return}
+      var pt={x:xPos(i),y:pad.t+ch-ch*(Number(v)/maxV)};
+      if(!seg){seg=[];segments.push(seg)}
+      seg.push(pt);
+      points.push({x:pt.x,y:pt.y,color:color,text:dates[i]+'：'+fmt(Number(v))});
+    });
+    if(area)fillLineArea(ctx,segments,pad.t+ch,color);
+    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.setLineDash(dash||[]);
+    segments.forEach(function(s){
+      ctx.beginPath();
+      s.forEach(function(p,i){if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+  plot(latencySec,latMax,CHART.warn,[],function(v){return v.toFixed(2)+'s'},true);
+  plot(react,reactMax,CHART.info,[5,3],function(v){return v.toFixed(2)+' 轮'},false);
+  points.forEach(function(p){
+    ctx.beginPath();ctx.arc(p.x,p.y,3.5,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+  });
+  bindChartTooltip(chart,points);
+}
+
+/** Token / 请求柱状图（每请求 token 均值）。 */
+function drawTokenTrendChart(){
+  var t=REPORT.trend_7d;
+  if(!t||!t.dates||!t.dates.length||!trendHasData(t,'token_avg'))return;
+  var chart=setupChartCanvas('token-trend-box','token-trend-tooltip',210);
+  if(!chart)return;
+  var ctx=chart.ctx;var w=chart.w;var h=chart.h;
+  var pad={t:20,r:20,b:32,l:52};
+  var cw=w-pad.l-pad.r;var ch=h-pad.t-pad.b;
+  var dates=t.dates;var n=dates.length;
+  var maxV=axisMax(t.token_avg,1);
+  var slot=cw/Math.max(n,1);
+  var barW=Math.min(slot*0.5,42);
+
+  drawGridLines(ctx,{left:pad.l,top:pad.t,w:cw,h:ch});
+  ctx.fillStyle=CHART.label;ctx.textAlign='right';ctx.textBaseline='middle';
+  for(var gl=0;gl<=4;gl++){
+    ctx.fillText(fmtTokens(maxV*gl/4),pad.l-8,pad.t+ch-ch*(gl/4));
+  }
+  ctx.textAlign='center';ctx.textBaseline='top';
+  dates.forEach(function(d,i){ctx.fillText(d,pad.l+slot*(i+0.5),h-pad.b+10)});
+
+  var points=[];
+  (t.token_avg||[]).forEach(function(v,i){
+    if(v==null||v===''||isNaN(Number(v)))return;
+    var val=Number(v);
+    var bh=Math.max(ch*(val/maxV),2);
+    var x=pad.l+slot*(i+0.5)-barW/2;
+    var y=pad.t+ch-bh;
+    var grad=ctx.createLinearGradient(0,y,0,pad.t+ch);
+    grad.addColorStop(0,hexToRgba(CHART.violet,.85));
+    grad.addColorStop(1,hexToRgba(CHART.violet,.35));
+    traceRoundedBar(ctx,x,y,barW,bh,5);
+    ctx.fillStyle=grad;ctx.fill();
+    points.push({x:x+barW/2,y:y,hit:Math.max(barW,16),text:dates[i]+'：'+fmtTokens(val)+' tokens'});
+  });
+  bindChartTooltip(chart,points);
+}
+
+function drawTrendChart(){
+  var box=document.getElementById('trend-chart-box');
+  if(!box)return;
+  var tooltip=document.getElementById('trend-tooltip');
+  var old=box.querySelector('canvas');
+  if(old)box.removeChild(old);
+  var t=REPORT.trend_7d;
+  if(!t||!t.dates||!t.dates.length)return;
+  var canvas=document.createElement('canvas');
+  box.insertBefore(canvas,tooltip);
+  var dpr=window.devicePixelRatio||1;
+  var w=box.clientWidth;
+  var h=260;
+  canvas.width=w*dpr;
+  canvas.height=h*dpr;
+  canvas.style.width=w+'px';
+  canvas.style.height=h+'px';
+  var ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  var pad={t:24,r:52,b:36,l:48};
+  var cw=w-pad.l-pad.r;
+  var ch=h-pad.t-pad.b;
+  var dates=t.dates;
+  var n=dates.length;
+  var xStep=n>1?cw/(n-1):cw;
+  function xPos(i){return pad.l+(n>1?i*xStep:cw/2)}
+
+  drawGridLines(ctx,{left:pad.l,top:pad.t,w:cw,h:ch});
+
+  ctx.font='11px -apple-system,"SF Pro Text",sans-serif';
+  ctx.fillStyle=CHART.label;ctx.textAlign='right';ctx.textBaseline='middle';
+  for(var g=0;g<=4;g++){
+    var gy=pad.t+ch-ch*(g/4);
+    ctx.fillText((g*0.5).toFixed(1),pad.l-8,gy);
+  }
+  ctx.textAlign='left';
+  for(var g=0;g<=4;g++){
+    var gy=pad.t+ch-ch*(g/4);
+    ctx.fillText((g*25)+'%',w-pad.r+8,gy);
+  }
+  ctx.textAlign='center';ctx.textBaseline='top';
+  dates.forEach(function(d,i){ctx.fillText(d,xPos(i),h-pad.b+10)});
+
+  trendPoints=[];
+  function plotLine(data,maxV,color,dash,area){
+    var segments=[];var seg=null;
+    (data||[]).forEach(function(v,i){
+      if(v==null){seg=null;return}
+      var pt={x:xPos(i),y:pad.t+ch-ch*(v/maxV)};
+      if(!seg){seg=[];segments.push(seg)}
+      seg.push(pt);
+      trendPoints.push({x:pt.x,y:pt.y,label:dates[i],val:v,axis:maxV===2?'综合得分':'优良率%',color:color});
+    });
+    if(area)fillLineArea(ctx,segments,pad.t+ch,color);
+    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.setLineDash(dash||[]);
+    segments.forEach(function(s){
+      ctx.beginPath();
+      s.forEach(function(p,i){if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+  plotLine(t.fused_avg,2,CHART.brand,[],true);
+  plotLine(t.excellent_good_rate,100,CHART.good,[5,3],false);
+
+  trendPoints.forEach(function(p){
+    ctx.beginPath();ctx.arc(p.x,p.y,3.5,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+  });
+
+  canvas.onmousemove=function(e){
+    var rect=canvas.getBoundingClientRect();
+    var mx=e.clientX-rect.left;
+    var my=e.clientY-rect.top;
+    var best=null;var bestD=Infinity;
+    trendPoints.forEach(function(p){
+      var dx=p.x-mx;var dy=p.y-my;var d=Math.sqrt(dx*dx+dy*dy);
+      if(d<bestD){bestD=d;best=p}
+    });
+    if(best&&bestD<=8){
+      tooltip.style.display='block';
+      tooltip.style.left=(best.x+10)+'px';
+      tooltip.style.top=(best.y-28)+'px';
+      tooltip.textContent=best.label+'：'+(best.axis==='综合得分'?Number(best.val).toFixed(3):Number(best.val).toFixed(1)+'%');
+    }else{tooltip.style.display='none'}
+  };
+  canvas.onmouseleave=function(){tooltip.style.display='none'};
+}
+
+function renderDimTable(){
+  var tbody=document.getElementById('dim-tbody');
+  if(!tbody)return;
+  var criteria=REPORT.criteria||[];
+  var cm=REPORT.criterion_metrics||{};
+  var rows='';
+  criteria.forEach(function(c){
+    var m=cm[c.id];
+    var mean=m&&m.mean!=null?m.mean:null;
+    var fs=fullScore(c);
+    var rate=mean!=null?(mean/fs*100):null;
+    var barColor=rateColor(rate);
+    var weightHtml=isVetoDim(c)?'<span class="veto-tag">一票否决</span>':'<span class="weight-tag">'+(c.weight!=null?(c.weight*100).toFixed(0)+'%':'0%')+'</span>';
+    var meanStr=mean!=null?Number(mean).toFixed(3):'—';
+    var rateStr=rate!=null?rate.toFixed(1)+'%':'—';
+    var barW=rate!=null?Math.min(rate,100):0;
+    var name=escHtml(c.name||c.id||'');
+    rows+='<tr>'
+      +'<td class="dim-name col-name" title="'+name+'">'+name+'</td>'
+      +'<td class="col-weight">'+weightHtml+'</td>'
+      +'<td class="col-score" style="font-variant-numeric:tabular-nums;font-weight:600">'+meanStr+'</td>'
+      +'<td class="col-rate" style="font-variant-numeric:tabular-nums;color:'+barColor+'">'+rateStr+'</td>'
+      +'<td class="col-dist"><div class="dist-bar-track"><div class="dist-bar-fill" style="width:'+barW+'%;background:'+barColor+'"></div></div></td>'
+      +'</tr>';
+  });
+  tbody.innerHTML=rows;
+}
+
+/** 维度表与雷达同高：表行均分拉满左侧，雷达按右侧可用区域绘制。 */
+function syncEvalDimLayout(){
+  var card=document.querySelector('.eval-dim-card');
+  var left=document.querySelector('.eval-dim-left');
+  var right=document.querySelector('.eval-dim-right');
+  var table=document.querySelector('.dim-tbl');
+  var box=document.getElementById('radar-chart-box');
+  if(!card||!left||!right||!table)return;
+  var n=(REPORT.criteria||[]).length||7;
+  var minH=Math.max(400,n*48+44);
+  if(card.clientHeight<minH)card.style.minHeight=minH+'px';
+  table.style.height='100%';
+  if(box){
+    var legend=document.getElementById('radar-legend');
+    var legendH=legend?legend.offsetHeight+8:28;
+    var avail=Math.max(right.clientHeight-legendH,280);
+    box.style.height=avail+'px';
+    box.style.minHeight=avail+'px';
+  }
+}
+
+function initRadar(){
+  radarShowToday=true;
+  radarShowYesterday=!!(REPORT.yesterday_criterion_means&&Object.keys(REPORT.yesterday_criterion_means).length>0);
+  renderRadarLegend();
+  syncEvalDimLayout();
+  drawRadar();
+  requestAnimationFrame(function(){syncEvalDimLayout();drawRadar()});
+  var timer=null;
+  window.addEventListener('resize',function(){
+    clearTimeout(timer);
+    timer=setTimeout(function(){syncEvalDimLayout();drawRadar()},150);
+  });
+}
+
+function renderRadarLegend(){
+  var leg=document.getElementById('radar-legend');
+  if(!leg)return;
+  var html='<div class="radar-legend-item'+(radarShowToday?'':' off')+'" data-series="today" onclick="toggleRadarSeries(\'today\')"><span class="legend-line" style="background:#0f6e6a"></span>今日</div>';
+  if(REPORT.yesterday_criterion_means&&Object.keys(REPORT.yesterday_criterion_means).length>0){
+    html+='<div class="radar-legend-item'+(radarShowYesterday?'':' off')+'" data-series="yesterday" onclick="toggleRadarSeries(\'yesterday\')"><span class="legend-line" style="background:repeating-linear-gradient(90deg,#d97706 0 8px,transparent 8px 12px)"></span>昨日</div>';
+  }
+  leg.innerHTML=html;
+}
+
+function toggleRadarSeries(s){
+  if(s==='today'){
+    if(!radarShowYesterday)return;
+    radarShowToday=!radarShowToday;
+  }else{
+    radarShowYesterday=!radarShowYesterday;
+  }
+  renderRadarLegend();
+  drawRadar();
+}
+
+function drawRadar(){
+  var box=document.getElementById('radar-chart-box');
+  if(!box)return;
+  var tooltip=document.getElementById('radar-tooltip');
+  var oldCanvases=box.querySelectorAll('canvas');
+  oldCanvases.forEach(function(c){box.removeChild(c)});
+  var criteria=REPORT.criteria||[];
+  if(!criteria.length)return;
+  var todayMeans=REPORT.today_criterion_means||{};
+  var yestMeans=REPORT.yesterday_criterion_means||{};
+  var N=criteria.length;
+  var canvas=document.createElement('canvas');
+  box.insertBefore(canvas,tooltip);
+  var dpr=window.devicePixelRatio||1;
+  // 与左侧维度表同高：按雷达盒子实际可用宽高取正方形边长
+  var availW=Math.max(box.clientWidth||0,300);
+  var availH=Math.max(box.clientHeight||0,280);
+  var size=Math.min(availW,availH,420);
+  if(size<280)size=280;
+  var h=size;
+  canvas.width=size*dpr;
+  canvas.height=h*dpr;
+  canvas.style.width=size+'px';
+  canvas.style.height=h+'px';
+  var ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  var cy=h/2;
+  var labelPad=Math.max(52,Math.round(size*0.12));
+  var cx=size/2+4;
+  var R=Math.min(cx-labelPad,cy-labelPad,size-cx-labelPad);
+  if(R<100)R=100;
+  var angles=[];
+  for(var i=0;i<N;i++){angles.push((-90+i*360/N)*Math.PI/180)}
+
+  ctx.strokeStyle=CHART.grid;ctx.lineWidth=1;
+  [0.25,0.5,0.75,1.0].forEach(function(rv){
+    ctx.beginPath();
+    for(var i=0;i<=N;i++){
+      var a=angles[i%N];
+      var x=cx+R*rv*Math.cos(a);
+      var y=cy+R*rv*Math.sin(a);
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.closePath();ctx.stroke();
+  });
+
+  for(var i=0;i<N;i++){
+    var a=angles[i];
+    ctx.beginPath();ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));
+    ctx.strokeStyle=CHART.grid;ctx.lineWidth=1;ctx.stroke();
+  }
+
+  ctx.font='11px -apple-system,"SF Pro Text",sans-serif';
+  ctx.fillStyle=CHART.label;
+  criteria.forEach(function(c,i){
+    var a=angles[i];
+    var lx=cx+(R+14)*Math.cos(a);
+    var ly=cy+(R+14)*Math.sin(a);
+    var nm=c.name||c.id;
+    var display=nm.length>6?nm.slice(0,6)+'…':nm;
+    display+=' /'+fullScore(c);
+    ctx.textBaseline='middle';
+    if(Math.abs(Math.cos(a))<0.01){ctx.textAlign='center'}
+    else if(Math.cos(a)>0){ctx.textAlign='start'}
+    else{ctx.textAlign='end'}
+    ctx.fillText(display,lx,ly);
+  });
+
+  radarPoints=[];
+
+  function getVal(cid,src){
+    if(!src)return null;
+    var v=src[cid];
+    if(typeof v==='number')return v;
+    if(v&&typeof v==='object'&&typeof v.mean==='number')return v.mean;
+    return null;
+  }
+
+  function drawSeries(src,color,dash,key){
+    var vals=[];
+    criteria.forEach(function(c){
+      var raw=getVal(c.id,src);
+      var fs=fullScore(c);
+      var norm=raw!=null?Math.max(0,Math.min(raw/fs,1)):null;
+      vals.push({norm:norm,raw:raw,name:c.name||c.id,fs:fs});
+    });
+    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.setLineDash(dash);
+    ctx.beginPath();
+    var started=false;
+    vals.forEach(function(v,i){
+      if(v.norm==null){started=false;return}
+      var x=cx+R*v.norm*Math.cos(angles[i]);
+      var y=cy+R*v.norm*Math.sin(angles[i]);
+      if(!started){ctx.moveTo(x,y);started=true}else{ctx.lineTo(x,y)}
+    });
+    ctx.closePath();ctx.stroke();ctx.restore();
+
+    vals.forEach(function(v,i){
+      if(v.norm==null)return;
+      var x=cx+R*v.norm*Math.cos(angles[i]);
+      var y=cy+R*v.norm*Math.sin(angles[i]);
+      var big=v.norm>=0.95;
+      var rad=big?5:3.5;
+      ctx.beginPath();ctx.arc(x,y,rad,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+      radarPoints.push({x:x,y:y,name:v.name,raw:v.raw,fs:v.fs,key:key,color:color});
+    });
+  }
+
+  if(radarShowToday)drawSeries(todayMeans,'#0f6e6a',[],'today');
+  if(radarShowYesterday&&Object.keys(yestMeans).length>0)drawSeries(yestMeans,'#d97706',[8,4],'yesterday');
+
+  canvas.onmousemove=function(e){
+    var rect=canvas.getBoundingClientRect();
+    var mx=e.clientX-rect.left;
+    var my=e.clientY-rect.top;
+    var visible=radarPoints.filter(function(p){return(p.key==='today'&&radarShowToday)||(p.key==='yesterday'&&radarShowYesterday)});
+    var best=null;var bestD=Infinity;
+    visible.forEach(function(p){
+      var dx=p.x-mx;var dy=p.y-my;var d=Math.sqrt(dx*dx+dy*dy);
+      if(d<bestD){bestD=d;best=p}
+    });
+    if(best&&bestD<=12){
+      tooltip.style.display='block';
+      tooltip.style.left=(best.x+10)+'px';
+      tooltip.style.top=(best.y-28)+'px';
+      tooltip.textContent=best.name+'：'+(best.raw!=null?Number(best.raw).toFixed(2):'—')+' / '+best.fs;
+    }else{tooltip.style.display='none'}
+  };
+  canvas.onmouseleave=function(){tooltip.style.display='none'};
+}
+
+function renderWaterfallDelta(){
+  var sec=document.getElementById('waterfall-delta-section');
+  if(!sec)return;
+  var hasWF=REPORT.score_loss_waterfall&&REPORT.score_loss_waterfall.steps;
+  var hasCD=REPORT.criterion_deltas&&REPORT.criterion_deltas.length>0;
+  if(!hasWF&&!hasCD){sec.innerHTML='';return}
+  var html='<div class="sec">分数损失与维度环比</div><div class="wd-section">';
+  if(hasWF){
+    var wf=REPORT.score_loss_waterfall;
+    // 与满分同轴：柱高 = value/start。禁止按 max(step.loss) 归一化。
+    var start=Number(wf.start||2)||2;
+    var end=Number(wf.end||0);
+    html+='<div class="card"><div style="font-size:13px;font-weight:700;color:#1f2430;margin-bottom:12px">分数损失归因</div>';
+    html+='<div class="waterfall-bars">';
+    html+='<div class="wf-col"><div class="wf-plot"><div class="wf-val">'+fmtNum(start)+'</div><div class="wf-bar start" style="height:100%"></div></div><div class="wf-label">满分</div></div>';
+    (wf.steps||[]).forEach(function(s){
+      var loss=Number(s.loss)||0;
+      var h=Math.max(4,Math.min(100,loss/start*100));
+      html+='<div class="wf-col"><div class="wf-plot"><div class="wf-val">-'+fmtNum(loss)+'</div><div class="wf-bar loss" style="height:'+h+'%"></div></div><div class="wf-label" title="'+escHtml(s.label)+'">'+escHtml(s.label)+'</div></div>';
+    });
+    html+='<div class="wf-col"><div class="wf-plot"><div class="wf-val">'+fmtNum(end)+'</div><div class="wf-bar end" style="height:'+Math.max(4,Math.min(100,end/start*100))+'%"></div></div><div class="wf-label">综合分</div></div>';
+    html+='</div>';
+    html+='<div class="note-muted">计算方法：总落差 = max(0, 满分 − 综合分)；按各根因（含"未归因"）有效 case 的 fused 失分合计占比分摊，各柱之和≈总落差。</div></div>';
+  }else{
+    html+='<div class="card" style="opacity:.5;font-size:12px;color:#9aa0b4;display:flex;align-items:center;justify-content:center;min-height:180px">暂无分数损失数据</div>';
+  }
+  if(hasCD){
+    var cd=REPORT.criterion_deltas;
+    html+='<div class="card"><div style="font-size:13px;font-weight:700;color:#1f2430;margin-bottom:12px">维度环比（今日 vs 昨日）</div><div class="delta-list">';
+    cd.forEach(function(d){
+      var delta=d.delta;
+      var abs=Math.abs(delta);
+      var arrow,col;
+      if(abs<=0.01){arrow='→';col='#6b7194'}
+      else if(delta>0){arrow='↑';col='#16a34a'}
+      else{arrow='↓';col='#dc2626'}
+      html+='<div class="delta-row"><span class="delta-name">'+escHtml(d.name)+'</span><span class="delta-val" style="color:'+col+'">'+arrow+' '+fmtNum(delta)+'<span class="delta-sub">('+fmtNum(d.today)+' / '+fmtNum(d.yesterday)+')</span></span></div>';
+    });
+    html+='</div><div class="note-muted">计算方法：维度环比 = 今日同维度有效样本均分 − 昨日同 benchmark 已完成 run 的同维度有效样本均分；绝对变化 ≤ 0.010 按持平显示，其余正值表示提升、负值表示下降。</div></div>';
+  }else{
+    html+='<div class="card" style="opacity:.5;font-size:12px;color:#9aa0b4;display:flex;align-items:center;justify-content:center;min-height:180px">暂无维度环比数据</div>';
+  }
+  html+='</div>';
+  sec.innerHTML=html;
+}
+
+function renderHeatmap(){
+  var sec=document.getElementById('heatmap-section');
+  if(!sec)return;
+  var m=REPORT.root_cause_dim_matrix;
+  if(!m||!m.rows||!m.cols){sec.innerHTML='';return}
+  var html='<div class="sec">根因 × 维度失分矩阵</div><div class="card"><div class="heatmap-wrap"><table class="heatmap-tbl"><thead><tr><th>根因＼维度</th>';
+  m.cols.forEach(function(c){html+='<th>'+escHtml(c.name||c.id)+'</th>'});
+  html+='</tr></thead><tbody>';
+  var maxVal=0;
+  m.rows.forEach(function(r){
+    (m.cols||[]).forEach(function(c){
+      var v=m.cells&&m.cells[r]&&m.cells[r][c.id];
+      if(v!=null&&!isNaN(v)&&v>maxVal)maxVal=v;
+    });
+  });
+  if(maxVal===0)maxVal=1;
+  m.rows.forEach(function(r){
+    html+='<tr><td>'+escHtml(r)+'</td>';
+    m.cols.forEach(function(c){
+      var v=m.cells&&m.cells[r]&&m.cells[r][c.id];
+      if(v==null||isNaN(v)){
+        html+='<td class="hm-cell muted">—</td>';
+      }else{
+        var intensity=Math.min(v/maxVal,1);
+        var bg='rgba(220,38,38,'+(0.08+intensity*0.55)+')';
+        html+='<td class="hm-cell" style="background:'+bg+'">'+Number(v).toFixed(3)+'</td>';
+      }
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div><div class="note-muted">计算方法：单元格 = 该根因（含"未归因"）下所有含该维有效分数 case 的（维度满分 − 得分）均值；满分 case 按 0 计入，安全维满分 1，其余维度满分 2。</div></div>';
+  sec.innerHTML=html;
+}
+
+var KNOWN_LABEL_ZH={
+  'planning/strategy_error':'规划/策略错误',
+  'planning/intent_error':'规划/意图错误',
+  'planning/context_lost':'规划/上下文丢失',
+  'tool/tool_exec_error':'工具/执行错误',
+  'tool/tool_unavailable':'工具/不可用',
+  'tool/data_insufficient':'工具/数据不足',
+  'generation/factuality_error':'生成/事实性错误',
+  'generation/completeness_error':'生成/完整性错误',
+  'strategy_error':'规划/策略错误',
+  'intent_error':'规划/意图错误',
+  'context_lost':'规划/上下文丢失',
+  'tool_exec_error':'工具/执行错误',
+  'tool_unavailable':'工具/不可用',
+  'data_insufficient':'工具/数据不足',
+  'factuality_error':'生成/事实性错误',
+  'completeness_error':'生成/完整性错误',
+  'unknown':'unknown'
+};
+
+function translateLabel(l){
+  if(!l)return l;
+  if(KNOWN_LABEL_ZH[l])return KNOWN_LABEL_ZH[l];
+  var parts=l.split('/');
+  var translated=parts.map(function(p){
+    if(KNOWN_LABEL_ZH[p])return KNOWN_LABEL_ZH[p];
+    return p;
+  });
+  return translated.join('/');
+}
+
+function renderAttribution(){
+  var sec=document.getElementById('attribution-section');
+  if(!sec)return;
+  var am=REPORT.attribution_metrics;
+  if(!am||typeof am!=='object'||Object.keys(am).length===0){sec.innerHTML='';return}
+  var criteria=REPORT.criteria||[];
+  var critMap={};criteria.forEach(function(c){critMap[c.id]=c});
+  var html='<div class="sec">不合格归因</div>';
+  Object.keys(am).forEach(function(key){
+    var entry=am[key];
+    if(!entry||!entry.field_distributions)return;
+    var title=key==='fused'?'综合归因':(critMap[key]?critMap[key].name:key);
+    var total=entry.total_attributed||0;
+    html+='<div class="card attr-section"><div class="attr-title">'+escHtml(title)+'<span class="attr-total">'+total+' 例</span></div>';
+    var fields=entry.field_distributions;
+    var labels=entry.value_labels||{};
+    Object.keys(fields).forEach(function(field){
+      var dist=fields[field];
+      if(!dist||typeof dist!=='object')return;
+      var fieldLabels=labels[field]||{};
+      var items=[];
+      Object.keys(dist).forEach(function(val){items.push({val:val,count:dist[val]})});
+      items.sort(function(a,b){return b.count-a.count});
+      html+='<div class="attr-field-title">'+escHtml(field)+'</div>';
+      html+='<table class="attr-tbl"><colgroup>'
+        +'<col class="ac-col-cat"><col class="ac-col-bar"><col class="ac-col-cnt"><col class="ac-col-pct">'
+        +'</colgroup><thead><tr><th>分类</th><th>分布</th><th style="text-align:right">个数</th><th style="text-align:right">百分比</th></tr></thead><tbody>';
+      items.forEach(function(it){
+        var rawLabel=fieldLabels[it.val]||it.val;
+        var zhLabel=translateLabel(rawLabel);
+        if(field==='扣分维度'){
+          var dm=String(rawLabel).match(/^([^(]+)\((.+)\)$/);
+          if(dm) zhLabel=dm[2];
+        }
+        // 进度条按占总归因比例铺满分布列（与百分比列语义一致）
+        var barW=total>0?(it.count/total*100):0;
+        if(barW>0&&barW<1.5)barW=1.5;
+        var p=total>0?(it.count/total*100):0;
+        html+='<tr class="dist-row" data-root-cause="'+escHtml(it.val)+'">'
+          +'<td class="ac-cat" title="'+escHtml(zhLabel)+'">'+escHtml(zhLabel)+'</td>'
+          +'<td class="ac-bar"><div class="ac-track"><div class="ac-fill" style="width:'+barW.toFixed(1)+'%"></div></div></td>'
+          +'<td class="ac-cnt">'+it.count+'</td>'
+          +'<td class="ac-pct">'+p.toFixed(1)+'%</td>'
+          +'</tr>';
+      });
+      html+='</tbody></table>';
+    });
+    html+='</div>';
+  });
+  sec.innerHTML=html;
+  sec.querySelectorAll('tr.dist-row[data-root-cause]').forEach(function(tr){
+    tr.addEventListener('click',function(){
+      filterByRootCause(tr.getAttribute('data-root-cause')||'');
+    });
+  });
+  updateAttrActiveState();
+}
+
+function updateAttrActiveState(){
+  document.querySelectorAll('.dist-row[data-root-cause]').forEach(function(el){
+    if(activeRootCause&&el.getAttribute('data-root-cause')===activeRootCause){el.classList.add('active')}else{el.classList.remove('active')}
+  });
+}
+
+function filterByRootCause(rc){
+  if(activeRootCause===rc){activeRootCause=null}else{activeRootCause=rc}
+  var gf=document.getElementById('grade-filter');
+  if(gf&&activeRootCause)gf.value='';
+  updateAttrActiveState();
+  applyFilters();
+}
+
+function initCaseSection(){
+  var sec=document.getElementById('case-section');
+  if(!sec)return;
+  if(!CASES||CASES.length===0){sec.innerHTML='';return}
+  sec.innerHTML='<div class="sec">Case 明细</div><div class="card"><div class="table-header"><div class="table-controls"><input class="search-box" id="case-search" type="text" placeholder="精确搜索用例ID / query" oninput="applyFilters()"><select class="filter-select" id="grade-filter" onchange="applyFilters()"><option value="">全部状态</option><option value="FAIL_POOR" selected>不合格(FAIL+POOR)</option><option value="EXCELLENT">EXCELLENT</option><option value="GOOD">GOOD</option><option value="ACCEPTABLE">ACCEPTABLE</option><option value="POOR">POOR</option><option value="FAIL">FAIL</option></select></div></div><div id="root-cause-filter-tag"></div><div class="table-wrapper" id="table-wrapper"><table class="case-tbl" id="data-table"><thead><tr><th>query</th><th>output</th><th>case状态</th><th>综合分</th><th>各维度得分</th><th>根因</th><th>Trace链接</th></tr></thead><tbody id="case-tbody"></tbody></table></div><div class="pagination" id="pagination"></div></div>';
+  initDragPan();
+  applyFilters();
+}
+
+function initDragPan(){
+  var wrapper=document.getElementById('table-wrapper');
+  if(!wrapper)return;
+  var isDown=false;var startX,startY,startSL,startST,moved;
+  wrapper.addEventListener('mousedown',function(e){
+    if(e.button!==0)return;
+    isDown=true;moved=false;
+    startX=e.clientX;startY=e.clientY;
+    startSL=wrapper.scrollLeft;startST=wrapper.scrollTop;
+    wrapper.classList.add('grabbing');
+  });
+  window.addEventListener('mousemove',function(e){
+    if(!isDown)return;
+    var dx=e.clientX-startX;var dy=e.clientY-startY;
+    if(Math.abs(dx)>5||Math.abs(dy)>5)moved=true;
+    wrapper.scrollLeft=startSL-dx;
+    wrapper.scrollTop=startST-dy;
+  });
+  window.addEventListener('mouseup',function(){
+    if(isDown){isDown=false;wrapper.classList.remove('grabbing')}
+  });
+  wrapper._dragMoved=function(){return moved};
+}
+
+function applyFilters(){
+  var search=(document.getElementById('case-search')||{}).value||'';
+  search=search.trim();
+  var gradeVal=(document.getElementById('grade-filter')||{}).value||'';
+  filteredCases=CASES.filter(function(c){
+    if(search){
+      var tid=c.trace_id||'';var cid=c.case_id||'';var did=c.display_case_id||'';var di=c.display_input||'';
+      if(tid!==search&&cid!==search&&did!==search&&di!==search)return false;
+    }
+    if(gradeVal==='FAIL_POOR'){
+      if(c.grade!=='FAIL'&&c.grade!=='POOR')return false;
+    }else if(gradeVal){
+      if(c.grade!==gradeVal)return false;
+    }
+    if(activeRootCause){
+      var rc=c.root_cause_display||'';
+      var attrCat=c.attribution&&c.attribution.primary_issue_category||'';
+      var attrRoot=c.attribution&&c.attribution.root_cause||'';
+      if(rc!==activeRootCause&&attrCat!==activeRootCause&&attrRoot!==activeRootCause)return false;
+    }
+    return true;
+  });
+  currentPage=1;
+  renderTable();
+  renderPagination();
+  renderRootCauseTag();
+}
+
+function renderRootCauseTag(){
+  var tag=document.getElementById('root-cause-filter-tag');
+  if(!tag)return;
+  if(!activeRootCause){tag.innerHTML='';return}
+  tag.innerHTML='<div class="root-cause-tag">根因: '+escHtml(activeRootCause)+' <span onclick="filterByRootCause(\''+escHtml(activeRootCause).replace(/'/g,"\\'")+'\')">&times;</span></div>';
+}
+
+function renderTable(){
+  var tbody=document.getElementById('case-tbody');
+  if(!tbody)return;
+  var criteria=REPORT.criteria||[];
+  var start=(currentPage-1)*PAGE_SIZE;
+  var page=filteredCases.slice(start,start+PAGE_SIZE);
+  var rows='';
+  page.forEach(function(c){
+    var openKey=String(c.trace_id||c.case_id||c.display_case_id||'');
+    var queryFull=String(c.display_input||'');
+    var outputFull=String(c.display_output||'');
+    var query=queryFull?truncateText(queryFull,40):'-';
+    var output=outputFull?truncateText(outputFull,40):'-';
+    var grade=c.grade||'';
+    var gradeClass=grade?('grade-'+grade.toLowerCase()):'';
+    var gradeBadge=grade?'<span class="grade-badge '+gradeClass+'">'+grade+'</span>':'<span class="muted">-</span>';
+    var fused=c.scores&&c.scores.fused&&c.scores.fused.score!=null?Number(c.scores.fused.score).toFixed(3):'-';
+    var scoreLines='';
+    criteria.forEach(function(cr){
+      var sc=c.scores&&c.scores[cr.id];
+      var sv=sc&&sc.score!=null?sc.score:null;
+      var col=sv!=null?scoreColor(sv,cr):'#9aa0b4';
+      var svStr=sv!=null?Number(sv).toFixed(2):'—';
+      var fs=fullScore(cr);
+      var showBar=sv!=null&&sv<fs*0.8;
+      var barHtml='';
+      if(showBar){
+        var bw=Math.max((sv/fs)*100,0);
+        barHtml='<span class="mini-bar"><span class="mini-bar-fill" style="width:'+bw+'%;background:'+col+'"></span></span>';
+      }
+      scoreLines+='<div class="score-line"><span style="color:'+col+'">'+escHtml(cr.name)+': '+svStr+'</span>'+barHtml+'</div>';
+    });
+    var rc=c.root_cause_display?'<span class="rc-badge" title="'+escHtml(c.root_cause_display)+'">'+escHtml(c.root_cause_display)+'</span>':'<span class="muted">-</span>';
+    var queryCell=queryFull
+      ?('<span class="cell-truncate query-toggle" data-full="'+escHtml(queryFull)+'" data-open-key="'+escHtml(openKey)+'" onclick="return onQueryClick(event,this)">'+escHtml(query)+'</span>')
+      :'<span class="muted">-</span>';
+    var outputCell=outputFull
+      ?('<span class="cell-truncate" data-full="'+escHtml(outputFull)+'">'+escHtml(output)+'</span>')
+      :'<span class="muted">-</span>';
+    var turl=String(c.trace_url||'').trim();
+    var traceCell=turl
+      ?('<a class="trace-link" href="'+escHtml(turl)+'" target="_blank" rel="noopener">Langfuse ↗</a>')
+      :'<span class="trace-link-slot muted">-</span>';
+    rows+='<tr>';
+    rows+='<td>'+queryCell+'</td>';
+    rows+='<td class="col-output">'+outputCell+'</td>';
+    rows+='<td>'+gradeBadge+'</td>';
+    rows+='<td style="font-variant-numeric:tabular-nums;font-weight:600">'+fused+'</td>';
+    rows+='<td><div class="score-lines">'+scoreLines+'</div></td>';
+    rows+='<td>'+rc+'</td>';
+    rows+='<td>'+traceCell+'</td>';
+    rows+='</tr>';
+  });
+  if(page.length===0){
+    rows='<tr><td colspan="7" style="text-align:center;padding:30px;color:#9aa0b4">无匹配数据</td></tr>';
+  }
+  tbody.innerHTML=rows;
+}
+
+function onQueryClick(ev,el){
+  if(ev){ev.preventDefault();ev.stopPropagation()}
+  var wrapper=document.getElementById('table-wrapper');
+  if(wrapper&&wrapper._dragMoved&&wrapper._dragMoved())return false;
+  var key=(el&&(el.getAttribute('data-open-key')||el.getAttribute('data-full')))||'';
+  toggleTraceDetail(el,key);
+  return false;
+}
+
+var _hoverTipEl=null;
+var _hoverTipTimer=null;
+var _hoverTipsBound=false;
+
+function hideHoverTip(){
+  if(_hoverTipEl&&_hoverTipEl.parentNode)_hoverTipEl.parentNode.removeChild(_hoverTipEl);
+  _hoverTipEl=null;
+}
+function scheduleHideHoverTip(){
+  clearTimeout(_hoverTipTimer);
+  _hoverTipTimer=setTimeout(hideHoverTip,280);
+}
+function cancelHideHoverTip(){clearTimeout(_hoverTipTimer)}
+function showHoverTip(text,anchor){
+  hideHoverTip();
+  if(!text)return;
+  _hoverTipEl=document.createElement('div');
+  _hoverTipEl.className='query-tip-float';
+  _hoverTipEl.textContent=text;
+  document.body.appendChild(_hoverTipEl);
+  var r=anchor.getBoundingClientRect();
+  var maxW=Math.min(480,window.innerWidth*0.8);
+  var left=Math.max(8,Math.min(r.left,window.innerWidth-maxW-16));
+  var top=r.bottom+6;
+  if(top+_hoverTipEl.offsetHeight>window.innerHeight-8){
+    top=Math.max(8,r.top-_hoverTipEl.offsetHeight-6);
+  }
+  _hoverTipEl.style.left=left+'px';
+  _hoverTipEl.style.top=top+'px';
+  _hoverTipEl.addEventListener('mouseenter',cancelHideHoverTip);
+  _hoverTipEl.addEventListener('mouseleave',scheduleHideHoverTip);
+}
+function initHoverTips(){
+  if(_hoverTipsBound)return;
+  _hoverTipsBound=true;
+  document.addEventListener('mouseover',function(e){
+    var el=e.target&&e.target.closest&&e.target.closest(
+      '.cell-truncate[data-full],.query-clip[data-full],.output-clip[data-full]'
+    );
+    if(!el)return;
+    cancelHideHoverTip();
+    var full=el.getAttribute('data-full')||'';
+    if(!full)return;
+    showHoverTip(full,el);
+  });
+  document.addEventListener('mouseout',function(e){
+    var el=e.target&&e.target.closest&&e.target.closest(
+      '.cell-truncate[data-full],.query-clip[data-full],.output-clip[data-full]'
+    );
+    if(!el)return;
+    var to=e.relatedTarget;
+    if(to&&(el.contains(to)||(_hoverTipEl&&_hoverTipEl.contains(to))))return;
+    scheduleHideHoverTip();
+  });
+}
+
+function renderPagination(){
+  var pag=document.getElementById('pagination');
+  if(!pag)return;
+  var total=filteredCases.length;
+  var pages=Math.ceil(total/PAGE_SIZE)||1;
+  if(currentPage>pages)currentPage=pages;
+  var html='<span class="page-info">共 '+total+' 条</span>';
+  html+='<button '+(currentPage<=1?'class="disabled"':'')+' onclick="goToPage('+(currentPage-1)+')">上一页</button>';
+  var startP=Math.max(1,currentPage-2);
+  var endP=Math.min(pages,currentPage+2);
+  if(startP>1){html+='<button onclick="goToPage(1)">1</button>';if(startP>2)html+='<span style="padding:0 4px;color:#9aa0b4">…</span>'}
+  for(var i=startP;i<=endP;i++){
+    html+='<button class="'+(i===currentPage?'active':'')+'" onclick="goToPage('+i+')">'+i+'</button>';
+  }
+  if(endP<pages){if(endP<pages-1)html+='<span style="padding:0 4px;color:#9aa0b4">…</span>';html+='<button onclick="goToPage('+pages+')">'+pages+'</button>'}
+  html+='<button '+(currentPage>=pages?'class="disabled"':'')+' onclick="goToPage('+(currentPage+1)+')">下一页</button>';
+  pag.innerHTML=html;
+}
+
+function goToPage(n){
+  var pages=Math.ceil(filteredCases.length/PAGE_SIZE)||1;
+  if(n<1||n>pages)return;
+  currentPage=n;
+  renderTable();
+  renderPagination();
+  var wrapper=document.getElementById('table-wrapper');
+  if(wrapper)wrapper.scrollTop=0;
+}
+
+function openDetail(caseId){
+  var overlay=document.getElementById('detail-overlay');
+  var modal=document.getElementById('detail-modal');
+  var titleEl=document.getElementById('detail-title');
+  var body=document.getElementById('detail-body');
+  if(!overlay||!modal||!body)return;
+  var c=null;
+  var key=String(caseId||'');
+  for(var i=0;i<CASES.length;i++){
+    if(CASES[i].case_id===key||CASES[i].trace_id===key||CASES[i].display_case_id===key){c=CASES[i];break}
+  }
+  if(!c&&/^\d+$/.test(key)){
+    var idx=Number(key);
+    if(idx>=0&&idx<CASES.length)c=CASES[idx];
+  }
+  if(!c){return}
+  var did=c.trace_id||c.case_id||c.display_case_id||'-';
+  titleEl.textContent='用例 '+did;
+  var head=modal.querySelector('.detail-modal-header');
+  if(head){
+    var prev=head.querySelector('a.rux-trace-link');
+    var turl=String(c.trace_url||'').trim();
+    if(turl){
+      if(prev){prev.href=turl}
+      else{
+        var ta=document.createElement('a');
+        ta.className='rux-trace-link';
+        ta.href=turl;
+        ta.target='_blank';
+        ta.rel='noopener';
+        ta.textContent='Langfuse ↗';
+        var closeBtn=head.querySelector('.detail-modal-close');
+        if(closeBtn)head.insertBefore(ta,closeBtn);
+        else head.appendChild(ta);
+      }
+    }else if(prev){
+      prev.remove();
+    }
+  }
+  var html='';
+  html+=buildBasicInfoHtml(c);
+
+  var caseQuery=extractCaseQuery(c);
+  if(caseQuery){
+    var diShort=caseQuery.length>80?caseQuery.slice(0,80)+'…':caseQuery;
+    html+='<div class="detail-section"><div class="detail-section-title">query</div><div class="detail-query" data-full-query="'+escHtml(caseQuery)+'">'+escHtml(diShort)+'</div></div>';
+  }
+  if(c.expected){
+    html+='<div class="detail-section"><div class="detail-section-title">预期结果</div><div class="detail-text">'+escHtml(String(c.expected))+'</div></div>';
+  }
+
+  html+=buildDimScoresHtml(c);
+
+  if(c.sub_scores&&typeof c.sub_scores==='object'){
+    html+='<div class="detail-section"><div class="detail-section-title">子分数</div><dl class="detail-kv">';
+    Object.keys(c.sub_scores).forEach(function(k){html+='<dt>'+escHtml(k)+'</dt><dd>'+escHtml(String(c.sub_scores[k]))+'</dd>'});
+    html+='</dl></div>';
+  }
+
+  html+=buildAttributionHtml(c);
+
+  body.innerHTML=html;
+  sanitizeUserIdFields(modal);
+  overlay.classList.add('visible');
+  modal.classList.add('visible');
+}
+
+function closeDetail(){
+  var overlay=document.getElementById('detail-overlay');
+  var modal=document.getElementById('detail-modal');
+  if(overlay)overlay.classList.remove('visible');
+  if(modal)modal.classList.remove('visible');
+}
+
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDetail()});
+
+window.openDetail=openDetail;
+window.closeDetail=closeDetail;
+window.onQueryClick=onQueryClick;
+window.toggleTraceDetail=toggleTraceDetail;
+window.extractCaseQuery=extractCaseQuery;
+window.extractCaseResult=extractCaseResult;
+window.renderMarkdown=renderMarkdown;
+window.applyFilters=applyFilters;
+window.filterByRootCause=filterByRootCause;
+window.goToPage=goToPage;
+
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init)}else{init()}
+</script>
+</body>
+</html>

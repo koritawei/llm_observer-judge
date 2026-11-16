@@ -1,0 +1,59 @@
+version: 1
+aliases:
+  inline_source:
+    class_ref: benchmark.kernel.builtins:InlineSource
+  parent_run_cases:
+    class_ref: benchmark.defaults.replay:ParentRunCases
+  default_limits:
+    class_ref: benchmark.kernel.builtins:DefaultLimits
+  replay_case_limits:
+    class_ref: benchmark.defaults.replay:ReplayCaseLimits
+  request_builder_passthrough:
+    class_ref: benchmark.kernel.builtins:PassthroughBuilder
+  eval_replay_request:
+    class_ref: benchmark.defaults.replay:EvalReplayRequest
+  exact_match_judge:
+    class_ref: benchmark.kernel.builtins:ExactMatchJudge
+  shop_phrase_judge:
+    class_ref: business.plugins.shop_judge:ShopPhraseJudge
+    group: shop
+    title: 商店短语评分
+    summary: 输出包含期望短语即得分
+  async_submit_judge:
+    class_ref: benchmark.kernel.builtins:AsyncSubmitJudge
+  eval_replay_execute:
+    class_ref: benchmark.defaults.replay:EvalReplayExecute
+  reuse_parent_output:
+    class_ref: benchmark.defaults.replay:ReuseParentOutput
+  output_passthrough:
+    class_ref: benchmark.kernel.builtins:OutputPassthrough
+  skill_exec:
+    class_ref: benchmark.defaults.skilltool:SkillExec
+  tool_exec:
+    class_ref: benchmark.defaults.skilltool:ToolExec
+  tool_contract:
+    class_ref: benchmark.defaults.skilltool:ToolContract
+  budget_window:
+    class_ref: benchmark.kernel.builtins:BudgetWindow
+  lease_pair:
+    class_ref: benchmark.kernel.builtins:LeasePair
+  rubric_v2:
+    class_ref: benchmark.kernel.builtins:RubricTrigger
+  attribution_none:
+    class_ref: benchmark.kernel.builtins:AttributionNone
+  recording_attribution:
+    class_ref: business.attribution:RecordingAttribution
+  dispatch_disabled:
+    class_ref: benchmark.kernel.builtins:DispatchDisabled
+  weighted_mean:
+    class_ref: benchmark.kernel.builtins:WeightedMean
+  always_true:
+    class_ref: benchmark.kernel.builtins:AlwaysTrue
+  stages_ready:
+    class_ref: benchmark.kernel.builtins:StagesReady
+  report_metrics_only:
+    class_ref: benchmark.kernel.builtins:MetricsReport
+  local_only:
+    class_ref: benchmark.kernel.builtins:LocalOnlyAuth
+  provider_hmac:
+    class_ref: benchmark.kernel.builtins:HmacAuth

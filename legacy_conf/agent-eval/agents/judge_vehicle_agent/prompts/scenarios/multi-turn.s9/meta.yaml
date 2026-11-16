@@ -1,0 +1,17 @@
+id: multi-turn.s9
+title: S9
+task_type: multi-turn
+section: 车机-多轮
+expected_markdown: true
+expected_cmd: true
+scoring: 出行类 0/1/2 分
+case_count: 2
+sample_queries:
+  - Q1: 我弟弟去北京南站接人了，接完人我们要一起吃个饭，找个我们中间位置距离差不多的老北京火锅
+  - Q2: 路上我先去加个油，然后再去买一束花，今天朋友刚来北京，送给她
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

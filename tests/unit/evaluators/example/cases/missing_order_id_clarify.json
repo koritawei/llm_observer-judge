@@ -1,0 +1,18 @@
+{
+  "input": {
+    "request_body": {
+      "query": "帮我查一下订单状态"
+    }
+  },
+  "output": {
+    "component": {
+      "text": "请提供订单号，我再帮您查询。"
+    },
+    "content_desc": {
+      "used_tool": []
+    }
+  },
+  "tool_check": {
+    "must_be_empty": true
+  }
+}

@@ -1,0 +1,14 @@
+version: 1
+domains:
+  - id: local-eval
+    header_name: x-isolation
+    header_value: local
+    allowed_url_keys: [eval, callback, remote_judge]
+    queue_prefix: local
+  - id: local-remote
+    header_name: x-isolation
+    header_value: local
+    allowed_url_keys: [remote_judge]
+    queue_prefix: local
+replay_domain: local-eval
+allow_request_override_aliases: []

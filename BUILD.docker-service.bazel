@@ -1,0 +1,7 @@
+SERVICE_DATA = glob([
+    "benchmark/**/*.py",
+    "business/**/*.py",
+    "business/evaluators/*/profile.yaml",
+    "business/agents/*/conf/**",
+    "conf/**",
+])

@@ -1,0 +1,38 @@
+[
+  {
+    "item_id": "greet",
+    "role": "good",
+    "query": "你好",
+    "expected": "你好"
+  },
+  {
+    "item_id": "refund",
+    "role": "bad",
+    "query": "这件衣服七天内能退吗？",
+    "expected": "七天内可退"
+  },
+  {
+    "item_id": "shipping",
+    "role": "bad",
+    "query": "运费怎么算",
+    "expected": "满99包邮"
+  },
+  {
+    "item_id": "price",
+    "role": "bad",
+    "query": "这双鞋卖多少钱",
+    "expected": "199元"
+  },
+  {
+    "item_id": "boil",
+    "role": "bad",
+    "query": "水的沸点是多少？",
+    "expected": "100摄氏度"
+  },
+  {
+    "item_id": "photo",
+    "role": "heldout",
+    "query": "怎么把照片里的红眼去掉？",
+    "expected": "用修复笔点掉红眼"
+  }
+]

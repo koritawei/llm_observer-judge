@@ -1,0 +1,6 @@
+version: 1
+businesses:
+  default:
+    groups: [kernel]
+  shop:
+    groups: [kernel, shop]

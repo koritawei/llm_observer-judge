@@ -1,0 +1,18 @@
+id: search.multi-condition
+title: 搜索 / 组合条件搜索
+task_type: search
+section: 车机-Standard 搜索类
+expected_markdown: true
+expected_cmd: 条件（根据用户意图判断）
+expected_dto: 条件（有有效候选时必须，无有效候选时允许为空）
+scoring: 搜索类 0/1/2 分
+case_count: 15
+sample_queries:
+  - 找下人均150元以内有包厢的川菜馆
+  - 找个附近2km内有卫生间的充电站
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

@@ -1,0 +1,17 @@
+id: multi-turn.s17
+title: S17
+task_type: multi-turn
+section: 车机-多轮
+expected_markdown: true
+expected_cmd: true
+scoring: 出行类 0/1/2 分
+case_count: 4
+sample_queries:
+  - Q1: 导航去蓝色港湾
+  - Q2: 先绕道亮马河公园接个朋友
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

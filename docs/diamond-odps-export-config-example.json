@@ -1,0 +1,23 @@
+{
+  "_comment_header": "Diamond ODPS 抽样导出调度配置 — agent-eval odps export（jobs 自带调度）",
+  "_comment_deploy": "部署位置：Diamond dataId=agent-eval.odps.export group=agent-eval.service.group（与 setenv ODPS_EXPORT_DIAMOND_* 对齐；勿改成 odps_export+odps_export+）",
+  "_comment_usage": "仅需 jobs[] 即可；省略顶层 enabled 时有可跑 job 即开启。id 可省略（默认 default）。锁 {queue_prefix}:odps_export:{job_id}:{oss_ds}",
+  "_comment_compat": "仍支持顶层 enabled/schedule_*/sql_template；无 jobs 时顶层 sql 等价 id=default",
+  "_comment_reload": "调度器每次触发 use_cache=False；配置下一次触发即生效",
+  "_comment_disable": "进程级强制关闭：ODPS_EXPORT_DISABLED=true；或 Diamond enabled=false",
+  "_comment_env": "凭证走 Normandy；AGENT_EVAL_ODPS_AONE_APP_NAME/ENDPOINT/PROJECT 经 antx；禁止写 AK/SK",
+  "_comment_dates": "sql_template 内 {ds}=ODPS 分区 T-1；OSS key={oss_prefix}/{今天T}/{object_name}",
+  "_comment_sql": "占位符 {ds}/{limit} 须成对；{project_id} 从 jobs[].project_id 注入，过滤 $.record.project_id；CSV project 列取自该 JSON 字段；content 先 SPLIT_PART(CHR(1)) 取首段 JSON；先 JOIN 再 LIMIT；勿用 GETDATE()-1 做补跑",
+  "jobs": [
+    {
+      "enabled": true,
+      "schedule_time": "10:30",
+      "schedule_timezone": "Asia/Shanghai",
+      "limit": 200,
+      "oss_prefix": "search-eval/benchmark_result/",
+      "object_name": "benchmark_final_results.csv",
+      "project_id": "cmpwln0qs04fo6j8eryfdgznb",
+      "sql_template": "WITH overview_raw AS (\n    SELECT  GET_JSON_OBJECT(content_json, '$.record.id') AS record_id\n           ,GET_JSON_OBJECT(content_json, '$.record.output') AS raw_output\n           ,GET_JSON_OBJECT(content_json, '$.record.project_id') AS project\n    FROM    (\n                SELECT  SPLIT_PART(content, CHR(1), 1) AS content_json\n                FROM    autonavi_ai.s_tt_dwd_gd_ai_chat_req_langfuse_trace_raw_ri_tt4\n                WHERE   ds = '{ds}'\n            )\n    WHERE   GET_JSON_OBJECT(content_json, '$.record.name') = 'search_agent.stream.overview'\n      AND   GET_JSON_OBJECT(content_json, '$.record.id') IS NOT NULL\n      AND   GET_JSON_OBJECT(content_json, '$.record.output') IS NOT NULL\n      AND   GET_JSON_OBJECT(content_json, '$.record.output') <> ''\n      AND   GET_JSON_OBJECT(content_json, '$.record.project_id') = '{project_id}'\n)\n,joined AS (\n    SELECT  GET_JSON_OBJECT(t.root_input, '$.query') AS query\n           ,t.langfuse_trace_id AS trace_id\n           ,GET_JSON_OBJECT(t.root_input, '$.adiu') AS adiu\n           ,GET_JSON_OBJECT(t.root_input, '$.longitude') AS longitude\n           ,GET_JSON_OBJECT(t.root_input, '$.latitude') AS latitude\n           ,GET_JSON_OBJECT(t.root_output, '$.address') AS address\n           ,CONCAT(\n                TO_CHAR(\n                    FROM_UNIXTIME(CAST(t.trace_start_time / 1000 AS BIGINT))\n                   ,'yyyy-mm-dd hh:mi:ss'\n                )\n               ,'.'\n               ,LPAD(CAST(t.trace_start_time % 1000 AS STRING), 3, '0')\n            ) AS current_time\n           ,GET_JSON_OBJECT(t.root_output, '$.user_profile') AS user_profile\n           ,GET_JSON_OBJECT(t.root_output, '$.app_use_context') AS app_use_context\n           ,COALESCE(\n                NULLIF(GET_JSON_OBJECT(t.root_output, '$.result'), '')\n               ,NULLIF(s.raw_output, '')\n            ) AS result\n           ,t.tool_calls_json AS tool_call_json\n           ,s.project AS project\n    FROM    overview_raw s\n    JOIN    autonavi_ai.dwd_gd_ai_chat_langfuse_trace_di t\n    ON      t.ds = '{ds}'\n     AND   t.langfuse_trace_id = s.record_id\n    WHERE   GET_JSON_OBJECT(t.root_input, '$.query') IS NOT NULL\n      AND   GET_JSON_OBJECT(t.root_input, '$.query') <> ''\n)\nSELECT  *\nFROM    joined\nORDER BY RAND()\nLIMIT   {limit}\n"
+    }
+  ]
+}

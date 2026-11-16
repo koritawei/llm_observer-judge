@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-# Fail the commit if a Cursor Co-authored-by trailer is still present.
-MSG_FILE="${1:?}"
-if grep -qiE '^Co-authored-by:[[:space:]]*Cursor[[:space:]]*<' "$MSG_FILE"; then
-  echo "error: commit message must not include Co-authored-by: Cursor" >&2
-  exit 1
-fi
-exit 0

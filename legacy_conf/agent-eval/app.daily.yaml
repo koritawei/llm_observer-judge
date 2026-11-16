@@ -1,0 +1,435 @@
+# agent-eval app config (daily) — loaded by AppConfigManager.load_yaml in app/main.py.
+#
+# 对称前缀约定: judge / attribution 两个阶段按 <stage>_<logic_name> 区分。
+# `discovery.scan_namespaces: ["app"]`：walk app.* 发现 `@agent_component`，再按
+# yaml `agents.<key>.type` 调 `from_config` 放进 `agent_manager`。
+# 平台公共 `trace` ToolProvider：不依赖 libs/tools；由
+# `app/services/trace_resolver/tools.py` import 时 register tool metadata adapter +
+# `@tool_component`，再经下方 `tools.providers: [trace]` 装配。
+# 可选 `"tools"`：仅当依赖 libs/tools、要用 `AgentToolProvider` 扫包时才有意义
+# （agent-eval 默认未依赖该包；保留项便于日后业务私有 AgentTool 接入）。
+
+discovery:
+  scan_namespaces: ["app", "tools"]
+
+observability:
+  app_name: agent-eval
+  log_level: INFO
+  extensions:
+    langfuse:
+      max_io_chars: 0
+      max_repr_chars: 0
+
+# Named models — runtime.get_llm("<key>") builds a LangChain ChatModel from these.
+# `api_key` is never committed: it comes from the env var named by `api_key_env`.
+models:
+  judge_example:
+    provider: openai
+    model_name: deepseek-v4.1-flash
+    base_url: https://ai-llm-gateway.amap.com/v1
+    api_key_env: AGENT_EVAL_MODEL_API_KEY
+    temperature: 0.0
+    # 2048 易截断评审 JSON（finish_reason=length → content 空 → llm_unparseable）。
+    # deepseek-v4.1-flash 上下文 1M，输出 8192 足够完整 JSON。
+    max_tokens: 8192
+    timeout: 120
+  judge_amap_agent:
+    provider: openai
+    model_name: gpt-5.5-0424-global
+    base_url: https://ai-llm-gateway.amap.com/open_api/v1
+    api_key_env: AGENT_EVAL_JUDGE_AMAP_AGENT_MODEL_API_KEY
+    # gpt-5.5-0424-global only accepts its default sampling temperature (1.0).
+    temperature: 1.0
+    max_tokens: 4096
+    timeout: 120
+  judge_competitor_pairwise:
+    provider: openai
+    model_name: qwen3.7-max
+    base_url: https://pre-lmops.amap.com/open_api/v1
+    api_key_env: AGENT_EVAL_COMPETITOR_PAIRWISE_API_KEY
+    temperature: 0.0
+    max_tokens: 1024
+    timeout: 90
+  judge_memory_pairwise:
+    provider: anthropic
+    model_name: claude-sonnet-4-6
+    base_url: https://ai-llm-gateway.amap.com/open_api/anthropic
+    api_key_env: AGENT_EVAL_JUDGE_MEMORY_PAIRWISE_MODEL_API_KEY
+    temperature: 0.0
+    max_tokens: 8192
+    timeout: 90
+  attribution_example:
+    provider: openai
+    model_name: deepseek-v4.1-flash
+    base_url: https://ai-llm-gateway.amap.com/v1
+    api_key_env: AGENT_EVAL_MODEL_API_KEY
+    temperature: 0.0
+    # 2048 易截断归因 JSON (finish_reason=length → ValidationError)。
+    # deepseek-v4.1-flash 上下文 1M，输出 8192 足够完整 JSON。
+    max_tokens: 8192
+    timeout: 300
+  attribution_memory_pairwise:
+    provider: anthropic
+    model_name: claude-sonnet-4-6
+    base_url: https://ai-llm-gateway.amap.com/open_api/anthropic
+    api_key_env: AGENT_EVAL_JUDGE_MEMORY_PAIRWISE_MODEL_API_KEY
+    temperature: 0.0
+    max_tokens: 4096
+    timeout: 300
+  judge_vehicle_agent:
+    provider: openai
+    model_name: qwen3.7-max
+    base_url: https://pre-lmops.amap.com/open_api/v1
+    api_key_env: VEHICLE_AGENT_EVAL_MODEL_API_KEY
+    temperature: 0.0
+    max_tokens: 8192
+    timeout: 60
+  attribution_amap_agent:
+    provider: openai
+    model_name: gpt-5.5-0424-global
+    base_url: https://ai-llm-gateway.amap.com/open_api/v1
+    api_key_env: AGENT_EVAL_JUDGE_AMAP_AGENT_MODEL_API_KEY
+    # gpt-5.5-0424-global only accepts its default sampling temperature (1.0).
+    temperature: 1.0
+    max_tokens: 4096
+    timeout: 300
+  attribution_vehicle_agent:
+    provider: openai
+    model_name: deepseek-v4-flash
+    base_url: https://pre-lmops.amap.com/open_api/v1
+    api_key_env: VEHICLE_AGENT_EVAL_MODEL_API_KEY
+    temperature: 0.0
+    # 2048 易截断归因 JSON (finish_reason=length → ValidationError)，对齐 8192。
+    max_tokens: 8192
+    timeout: 300
+  judge_search_ai_card:
+    provider: openai
+    model_name: gpt-5.5-0424-global
+    base_url: https://ai-llm-gateway.amap.com/open_api/v1
+    api_key_env: AGENT_EVAL_JUDGE_AMAP_SEARCH_AGENT_MODEL_API_KEY
+    # gpt-5.5-0424-global only accepts its default sampling temperature (1.0).
+    temperature: 1.0
+    # 单条判定输出为小 JSON，但系统提示词较长（评测协议全文），放宽 timeout。
+    max_tokens: 4096
+    timeout: 300
+
+# Prompt templates root (relative to service_root) → runtime.prompt_manager.
+prompts:
+  template_dir:
+    - conf/agents/judge_example/prompts
+    - conf/agents/judge_amap_agent/prompts
+    - conf/agents/judge_image_chat/prompts
+    - conf/agents/judge_competitor_pairwise/prompts
+    - conf/agents/judge_memory_pairwise/prompts
+    - conf/agents/attribution_example/prompts
+    - conf/agents/attribution_memory_pairwise/prompts
+    - conf/agents/attribution_vehicle_agent/prompts
+
+# Evaluators (agentgraph agents). `type` = @agent_component(name=...).
+# 对称前缀: judge_example / attribution_example。
+agents:
+  judge_example:
+    type: judge_example
+    default_model: judge_example
+    prompt: evaluator
+    sub_score_axes:
+      - 准确度
+      - 相关性
+      - 完整性
+    sub_score_scale:
+      - 0.0
+      - 10.0
+    dimension_weights:
+      准确度: 0.4
+      相关性: 0.3
+      完整性: 0.3
+    attribution_threshold: 3.0
+  judge_vehicle_agent:
+    type: judge_vehicle_agent
+    default_model: judge_vehicle_agent
+  judge_search_ai_card:
+    type: judge_search_ai_card
+    description: search-page AI-card reply judge (holistic 0/1/2 + dimension attribution)
+    default_model: judge_search_ai_card
+    prompts_dir: conf/agents/judge_search_ai_card/prompts
+  judge_search_ai_card_v2:
+    type: judge_search_ai_card_v2
+    default_model: judge_search_ai_card
+    prompts_dir: conf/agents/judge_search_ai_card_v2/prompts
+  judge_amap_agent:
+    type: judge_amap_agent
+    description: amap-agent composite quality judge
+    default_model: judge_amap_agent
+    classify_prompt: classify_query
+    core_completion_checkpoint_prompt: core_completion_checkpoints
+    core_completion_prompt: core_completion
+    expression_prompt: expression
+    weights:
+      core_completion: 0.5
+      expression: 0.5
+  judge_image_description:
+    type: judge_image_chat
+    description: single-turn image description judge
+    judge_profile: description
+    default_model: judge_amap_agent
+    prompt: image_description_judge
+    max_parallel_llm_calls: 4
+  judge_image_chat_effect:
+    type: judge_image_chat
+    description: final image-chat task effectiveness judge
+    judge_profile: effect
+    default_model: judge_amap_agent
+    prompt: image_chat_effect_judge
+    max_parallel_llm_calls: 4
+  judge_image_loading:
+    type: judge_image_chat
+    description: image loading and tool-call correctness judge
+    judge_profile: loading
+  judge_competitor_pairwise:
+    type: judge_competitor_pairwise
+    description: blind pairwise comparison between Amap and one competitor
+    default_model: judge_competitor_pairwise
+    prompt: pairwise
+    focus_candidate: gaode
+    max_parallel_llm_calls: 10
+  judge_memory_pairwise:
+    type: judge_memory_pairwise
+    description: blind pairwise comparison measuring memory gain (with_memory vs without_memory)
+    default_model: judge_memory_pairwise
+    prompt: memory_pairwise
+    focus_candidate: with_memory
+    max_parallel_llm_calls: 10
+    # 设计2：评测器内部回放 mem-off。daily 留空是预期行为：daily 无对应的
+    # amap-agent 环境，评测在此环境不启用（回放前 fail-fast 报"未配置"），
+    # 记忆评测只在 pre/prod 运行；无补全计划，除非 daily 建出 amap-agent。
+    amap_base_url: ""
+    amap_agent_id: ai_chat
+    mock_adiu_prefix: memeval-
+    replay_timeout_ms: 30000
+  attribution_example:
+    type: attribution_example
+    default_model: attribution_example
+    badcase_prompt_name: badcase_attribution
+    badcase_runtime_options:
+      max_react_rounds: 4
+      confidence_threshold: 0.65
+      llm_call_timeout_s: 300
+  # memory_pairwise 配对归因：单轮 LLM（证据来自 judge_json.extra，不走 ReAct/trace 取证）；
+  # should_dispatch 由 agent 硬编码 False，永不派 Aone 工单。
+  attribution_memory_pairwise:
+    type: attribution_memory_pairwise
+    default_model: attribution_memory_pairwise
+    attribution_prompt_name: memory_attribution
+    confidence_threshold: 0.65
+  attribution_vehicle_agent:
+    type: attribution_vehicle_agent
+    default_model: attribution_vehicle_agent
+    badcase_prompt_name: badcase_vehicle_agent
+    badcase_runtime_options:
+      max_react_rounds: 3
+      confidence_threshold: 0.6
+      llm_call_timeout_s: 300
+  attribution_amap_agent:
+    type: attribution_amap_agent
+    model: attribution_amap_agent
+    sandbox:
+      backend: gateway
+      base_url: http://11.122.104.42:8000
+    execution:
+      max_iterations: 30
+      recursion_limit: 60
+      # 数据目录根路径，用于存放单条 trace 的 data.json 和 formatted.json
+      data_dir: ./data
+
+  # ── Benchmark agents ──────────────────────────────────────────────
+  example_benchmark:
+    type: example_benchmark
+    webdev_agent_url: "http://webdev-agent:9880/"
+
+  # ── amap-agent 实时流评测组件（Kafka 采样 → 复合 judge 单综合分，T+1 出报）──
+  amap_agent_benchmark:
+    type: amap_agent_benchmark
+
+  # ── 外部触发评测组件（rubric 权重来自评测rubric_v2.md）──────────────
+  ieval_external:
+    type: ieval_external
+    webdev_agent_url: "http://webdev-agent:9880/"
+
+  # ── 搜索 AI 卡评测组件（OSS 宽表 → 共享四字段协议，judge/归因本地同步）──
+  search_eval:
+    type: search_eval
+    webdev_agent_url: "http://webdev-agent:9880/"
+  search_eval_v2:
+    type: search_eval_v2
+    webdev_agent_url: "http://webdev-agent:9880/"
+
+# TriageAttributionService 配置 — 由 app.config.load_triage_configs 解析。
+# AppConfigManager 通过 register_section("custom") 放行此段。
+custom:
+  triage_attribution:
+    triage:
+      badcase_score_threshold: 0.5
+      policy_match_strict: true
+      label_studio_dispatcher_enabled: false
+    aone:
+      enabled: false
+      dry_run: false
+      a1_bin: a1
+      project: agent-eval
+      category: bug
+      # workitem_type 留空走项目默认 Bug 子类型；--type 只接受项目内具体子类型名
+      title_prefix: "[badcase]"
+      timeout_seconds: 30
+
+  # ── Benchmark 配置 ──────────────────────────────────────────────
+  benchmark:
+    default_max_concurrency: 1
+    default_parallel_evaluators: true
+    # OSS 报告上传配置移至环境变量（BENCHMARK_OSS_*），与 amap-agent 对齐
+    evaluate_timeout_s: 300
+    stale_heartbeat_timeout_s: 600
+    fused_classifier:
+      badcase_threshold: 0.5
+      watch_threshold: 0.8
+    # ── 归因回调后 Aone 工单推送（SDD benchmark-attribution-aone-dispatch）──
+    # per-run config_json 段；project_id / assignee 从 Diamond
+    # config.agent.eval.aone 按下方 profiles 映射的 key 查表获取。
+    aone_dispatch:
+      # schema/无段默认 false；daily 禁止默认推送，灰度 run 在 config_json 覆写 true。
+      enabled: false
+      minor_dispatch: false  # severity=minor 是否推送（critical/major 始终推送）
+      # 业务 → Diamond profile key。有映射时覆盖查表键；没有映射时
+      # 回退 agent 名，再回退 agent-eval（不再 profile_not_configured）。
+      profiles:
+        benchmark_ieval: benchmark_ieval
+        agent-eval: agent-eval
+        vehicle-eval: vehicle-eval
+
+  # ── BullMQ 评测分发（load_queue_prefix_from_yaml / load_slots_from_yaml）──
+  # 重试：次数上限见 Settings.eval_queue_max_attempts；时窗见 *_retry_max_duration_ms（D18）。
+  # 限流：slots_per_run_per_node + max_slot_probes_per_run + slot_busy_delay_ms（D15）。
+  # 裸前缀 daily 仅标准日常；临时环境设 EVAL_QUEUE_PREFIX（非保留），勿改本文件。
+  bullmq:
+    queue_prefix: "daily"
+    slots:
+      sync:
+        worker_concurrency: 3
+        slots_per_run_per_node: 1
+        retry_max_duration_ms: 3600000   # 1h
+        slot_busy_delay_ms: 3000
+        slot_heal_interval_s: 60
+        max_slot_probes_per_run: 2
+      external:
+        worker_concurrency: 2
+        slots_per_run_per_node: 1
+        retry_max_duration_ms: 7200000   # 2h 单 case（judge 与归因各自从首次 running 起算）
+        run_max_duration_ms: 86400000    # 24h 整个 run（judge+归因共用）
+        cluster_aone_soft_cap: 4
+        slot_busy_delay_ms: 3000
+        slot_heal_interval_s: 10          # 临时调快：healer 每 10s 巡检（原 60s）
+        running_ttl_ms: 86400000
+        callback_timeout_ms: 600000    # 10min: 查 Aone；running 则等，否则回插 wait
+        callback_concurrency: 20
+        local_attr_concurrency: 1
+        attr_worker_concurrency: 2
+        attr_slots_per_run_per_node: 2
+        attr_cluster_soft_cap: 4
+        attr_callback_timeout_ms: 600000    # 与 Aone/judge 相同：每 10min 查状态
+        # 与 judge 共用 /v1/benchmarks/callback；部署可用 ATTR_CALLBACK_URL 覆盖
+        attr_callback_url: "http://agent-eval/v1/benchmarks/callback"
+        max_slot_probes_per_run: 2
+
+  # ── MetaQ 评测消息消费（EvalMQConfig；app.mq_consumer.runtime.config.load_mq_config 解析）──
+  # 路由按 topic → source → converter：consumers 的键即来源（对应 app/mq_consumer/consumers/<source>）。
+  # namesrv 不写死：为空时按 env 取默认（daily/pre=nsaddr, prod=nsaddr-sh），可用
+  # AGENT_EVAL_MQ_NAMESRV_DOMAIN 覆盖；本地/离线用 AGENT_EVAL_MQ_ENABLED=false 关闭消费。
+  mq_consumer:
+    enabled: true
+    # namesrv 走 yaml（config.py 常量仅兜底；env AGENT_EVAL_MQ_NAMESRV_DOMAIN 可覆盖）。
+    namesrv_domain: "http://jmenv.tbsite.net:8080/rocketmq/nsaddr?nofix=1"
+    consumers:
+      # 洛书 luoshu 来源：topic / 消费组须与生产者约定一致（否则消费不到消息）。
+      luoshu:
+        topic: "luoshu-eval-test"
+        consumer_group: "CID-luoshu-eval-test"
+    worker_concurrency: 4         # 固定并发 worker 池（禁止无限增长）
+    worker_queue_size: 200        # 有界队列（满则入队阻塞 → 对上游 poll 背压）
+    retry_max_attempts: 10        # >0 = 有限重试；耗尽则跳过并提交（避免坏消息永久占用 worker）
+    retry_initial_backoff_ms: 500
+    retry_max_backoff_ms: 30000
+    handler_timeout_s: 120        # 单次评测尝试超时（秒），超时视为失败 → 重试
+
+  # 洛书补数使用的实例名。base_url / 密钥从 AGENT_EVAL_LANGFUSE_INSTANCES
+  # 里 name 相同的那一条读取。消息 project_id 须等于该条的 projectId。
+  langfuse:
+    instance_name: amap-v4
+
+  # ── Dataset eval output provider 路由（app.config.load_output_provider_routes 解析）──
+  # 键与 agents 段对齐：judge_<evaluator> 精确路由 → default 兜底 → 内置 expected_output。
+  # provider 可选：expected_output（数据集 expected_output 直接作为评测 output）
+  #             / agent_chat（逐条调已部署 agent /chat 取真实回答；config.base_url 必填，
+  #               另支持 chat_path / auth_token / timeout_s / max_retries / use_maxthink）。
+  dataset_eval:
+    evaluator_capabilities:
+      judge_image_description:
+        distributed_langfuse_experiment: true
+      judge_image_chat_effect:
+        distributed_langfuse_experiment: true
+      judge_image_loading:
+        distributed_langfuse_experiment: true
+    output_providers:
+      default:
+        provider: expected_output
+      judge_example:
+        provider: expected_output
+      judge_image_description:
+        provider: image_chat
+        fetch_on_missing_output: true
+        config:
+          base_url: https://daily-c4-amap-agent.amap.test
+          transport: stream
+          session_strategy: isolated
+          auth_token_env: AMAP_AGENT_AUTH_TOKEN
+          verify_ssl: false
+      judge_image_chat_effect:
+        provider: image_chat
+        fetch_on_missing_output: true
+        config:
+          base_url: https://daily-c4-amap-agent.amap.test
+          transport: stream
+          session_strategy: isolated
+          auth_token_env: AMAP_AGENT_AUTH_TOKEN
+          verify_ssl: false
+      judge_image_loading:
+        provider: image_chat
+        fetch_on_missing_output: true
+        config:
+          base_url: https://daily-c4-amap-agent.amap.test
+          transport: stream
+          session_strategy: isolated
+          auth_token_env: AMAP_AGENT_AUTH_TOKEN
+          verify_ssl: false
+      judge_amap_agent:
+        provider: agent_chat
+        config:
+          base_url: https://daily-c4-amap-agent.amap.test
+          auth_token_env: AMAP_AGENT_AUTH_TOKEN
+          # daily 内网域名为内部 CA 签发，本机信任库验不过（CERTIFICATE_VERIFY_FAILED）；
+          # 仅 daily 关闭校验，pre/prod 保持默认 true。
+          verify_ssl: false
+
+# 框架级 ToolProvider：trace 对所有 agent 可用（业务无需再声明）。
+# 业务自有工具再往 providers / extensions 追加。
+tools:
+  providers:
+    - trace
+    - amap_agent_trace_analysis
+  # deepseek-v4-flash 上下文 1M；8000 易截断 TOOL output 导致归因误判「未调工具」。
+  # 64k ≈ 常见 search_place 全文仍可控；再大收益有限、ReAct 多轮成本上升。
+  extensions:
+    trace:
+      max_observation_chars: 65536
+      # Langfuse Public API：默认 30s；超时不重试，仅 ConnectError / 429 / 5xx 重试。
+      timeout_seconds: 30
+      max_retries: 3
+      resolve_lookback_days: 14

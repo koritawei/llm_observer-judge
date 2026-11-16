@@ -1,0 +1,44 @@
+{
+  "_comment_deploy": "Diamond dataId=agent-eval.benchmark.external-daily group=agent-eval.service.group",
+  "_comment_classes": "rubric_class/judge_class/attribution_class 仅接受服务端白名单注册别名；旧 execution/provider/target 与 rubric_ref 格式不再兼容",
+  "_comment_fields": "oss_prefix 支持全路径（oss://...）或相对段（自动拼接 agent-eval.benchmark.oss 公共前缀；任何形态拒绝 .. 段与空段）；require_case_id 默认 false——true 时缺少全部 case_id 来源列（case_id/id/task_id）的行解析即失败；rubric 仅 mode=attribution_only 下允许（其余模式由 rubric_class 承载）",
+  "enabled": true,
+  "schedule_timezone": "Asia/Shanghai",
+  "no_data_retry_interval_min": 30,
+  "max_pull_attempts": 3,
+  "benchmarks": [
+    {
+      "benchmark_name": "ieval_external",
+      "dataset_name": "amap_chat_eval",
+      "oss_prefix": "oss://agent-eval-oss/ieval-service/benchmark/benchmark_result",
+      "schedule_time": "05:00",
+      "no_data_cutoff": "10:00",
+      "rubric_class": "amap_chat_rubric_v2",
+      "judge_class": "ieval_external_judge",
+      "attribution_class": "ieval_external_attribution",
+      "generate_report": true,
+      "require_case_id": false
+    },
+    {
+      "benchmark_name": "search_eval",
+      "oss_prefix": "oss://agent-eval-oss/search-eval/benchmark_result",
+      "schedule_time": "11:30",
+      "no_data_cutoff": "14:00",
+      "rubric_class": "search_eval_rubric",
+      "judge_class": "search_eval_judge",
+      "attribution_class": "no_attribution",
+      "generate_report": true
+    },
+    {
+      "benchmark_name": "search_eval_v2",
+      "oss_prefix": "oss://agent-eval-oss/search-eval/benchmark_result",
+      "schedule_time": "11:30",
+      "no_data_cutoff": "14:00",
+      "rubric_class": "search_eval_v2_rubric",
+      "judge_class": "search_eval_v2_judge",
+      "attribution_class": "no_attribution",
+      "generate_report": true
+    }
+  ],
+  "_comment_search_pair": "search_eval 与 search_eval_v2 必须指向同一 oss_prefix、日期和 limit；共用一次导出的 CSV，禁止分别重新抽样。v2 使用 search_eval_v2_judge，保留完整阶段明细。"
+}

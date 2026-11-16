@@ -1,0 +1,12 @@
+version: 1
+urls:
+  eval:
+    base_url: http://127.0.0.1:8080
+  callback:
+    base_url: http://127.0.0.1:8080/v1/callbacks
+  remote_judge:
+    base_url: http://127.0.0.1:9
+  object_store:
+    endpoint: file://var/reports
+    bucket: reports
+    secret_ref: object_store_writer

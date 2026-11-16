@@ -1,0 +1,26 @@
+version: 1
+domains:
+  conversation:
+    description: 对话质量。同一 domain 的数据放在一起，每个数据集只评测一个维度，合集构成多维度评测。
+    datasets:
+      - answer_quality
+      - tool_use
+eval_domains:
+  answer_quality:
+    domain: conversation
+    dimension: answer_quality
+    portion: answers
+    profile_id: dataset
+    evaluators: [exact, overlap]
+    rubric_id: answer_rubric_v1
+    score_scale: "0-1"
+    queue: dataset-cases
+  tool_use:
+    domain: conversation
+    dimension: tool_use
+    portion: tool_calls
+    profile_id: dataset
+    evaluators: [exact]
+    rubric_id: tool_rubric_v1
+    score_scale: "0-1"
+    queue: dataset-cases

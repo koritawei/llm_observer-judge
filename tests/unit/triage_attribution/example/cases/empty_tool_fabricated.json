@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "trace_id": "tr-empty-tool",
+    "project_id": "proj-example",
+    "evaluator_request": {
+      "trace_id": "tr-empty-tool",
+      "project_id": "proj-example",
+      "input": {
+        "request_body": {
+          "query": "查一下订单 10086 的状态"
+        }
+      },
+      "output": "订单 10086 已发货，预计明天送达。"
+    },
+    "evaluator_result": {
+      "score": 2.0,
+      "reason": "工具无结果，助手仍给出具体发货结论。"
+    }
+  },
+  "expected": {
+    "category": "tool",
+    "root_cause": "EXPECTED_LEAK_empty_tool_fabricated"
+  }
+}

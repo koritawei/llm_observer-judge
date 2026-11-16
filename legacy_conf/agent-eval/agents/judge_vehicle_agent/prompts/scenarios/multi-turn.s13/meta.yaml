@@ -1,0 +1,17 @@
+id: multi-turn.s13
+title: S13
+task_type: multi-turn
+section: 车机-多轮
+expected_markdown: true
+expected_cmd: true
+scoring: 出行类 0/1/2 分
+case_count: 4
+sample_queries:
+  - Q1: 导航去花梨坎地铁站
+  - Q2: 再换成最近的路线
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

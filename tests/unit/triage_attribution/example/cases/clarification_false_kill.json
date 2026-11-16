@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "trace_id": "tr-clarify",
+    "project_id": "proj-example",
+    "evaluator_request": {
+      "trace_id": "tr-clarify",
+      "project_id": "proj-example",
+      "input": {
+        "request_body": {
+          "query": "帮我查一下订单"
+        }
+      },
+      "output": "请提供订单号后再查询。"
+    },
+    "evaluator_result": {
+      "score": 2.0,
+      "reason": "未完成订单查询。"
+    }
+  },
+  "expected": {
+    "category": "unknown",
+    "root_cause": "EXPECTED_LEAK_clarification_false_kill",
+    "corrected_triage_level": "good",
+    "needs_human_review": false
+  }
+}

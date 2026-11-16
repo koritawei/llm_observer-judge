@@ -1,0 +1,56 @@
+--- a/skill.md
++++ b/skill.md
+@@ -2,7 +2,7 @@
+ 
+ [意图]
+ 你好: 问候
+-退: 人工
++退: 退货
+ 运费: 物流
+ 鞋: 价格
+ 沸点: 知识
+@@ -11,7 +11,7 @@
+ 问候: none
+ 人工: none
+ 退货: policy
+-物流: policy
++物流: shipping
+ 价格: price
+ 知识: knowledge
+ 
+--- a/tools.py
++++ b/tools.py
+@@ -6,7 +6,7 @@
+ 
+ 
+ POLICY = {
+-    "退": "不可退",
++    "退": "七天内可退",
+ }
+ 
+ SHIPPING = {
+@@ -14,7 +14,7 @@
+ }
+ 
+ PRICE = {
+-    "鞋": "299元",
++    "鞋": "199元",
+ }
+ 
+ KNOWLEDGE = {
+--- a/agent.py
++++ b/agent.py
+@@ -76,11 +76,9 @@
+ 
+ 
+ def _apply_code(query: str, intent: str, tool_result: str) -> str | None:
+-    """结果层过滤。知识问句里出现「多少」时丢掉工具结果。"""
++    """结果层过滤。保留工具结果。"""
+ 
+-    if intent == "知识" and "多少" in query:
+-        del tool_result
+-        return ""
++    del query, intent, tool_result
+     return None
+ 
+ 

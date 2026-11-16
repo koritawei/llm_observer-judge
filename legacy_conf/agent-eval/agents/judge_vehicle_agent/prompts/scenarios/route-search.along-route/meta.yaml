@@ -1,0 +1,18 @@
+id: route-search.along-route
+title: 沿途搜 / 沿途搜索单&多条件
+task_type: route-search
+section: 车机-Standard 出行类
+expected_markdown: true
+expected_cmd: 条件（由 D4 按 env、query 与候选选择权判断）
+expected_dto: 条件（有有效候选时必须，无有效候选时允许为空）
+scoring: 出行类 0/1/2 分
+case_count: 10
+sample_queries:
+  - 沿途找个有空闲桩的充电站
+  - 沿途推荐一个充电站
+focus_dimensions:
+  - D1
+  - D2
+  - D3
+  - D4
+  - D6

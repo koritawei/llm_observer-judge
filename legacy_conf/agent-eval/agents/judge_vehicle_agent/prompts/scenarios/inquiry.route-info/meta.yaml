@@ -1,0 +1,16 @@
+id: inquiry.route-info
+title: 问询 / 路线信息问询
+task_type: inquiry
+section: 车机-Standard 问询类
+expected_markdown: true
+expected_cmd: 条件（由 D4 按 env 与 query 判断）
+scoring: 搜索类 0/1/2 分
+case_count: 6
+sample_queries:
+  - 从大邱庄到团博什么时候会堵车
+  - 苏州园林苏州园区站到苏州市的距离
+focus_dimensions:
+  - D1
+  - D3
+  - D4
+  - D6
